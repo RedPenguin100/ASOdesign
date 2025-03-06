@@ -1,17 +1,11 @@
 import bisect
 import gzip
-import math
-import time
-from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import gffutils
 from Bio import SeqIO
-from Bio.Seq import Seq
-from BCBio import GFF
-from asodesigner.consts import HUMAN_TRANSCRIPTS_FASTA_GZ, HUMAN_GTF_BASIC, HUMAN_GFF, HUMAN_DB_BASIC, \
-    HUMAN_GENOME_FASTA_GZ, \
-    HUMAN_GENOME_FASTA, HUMAN_DB_BASIC_INTRONS, HUMAN_TRANSCRIPTS_FASTA
+from asodesigner.consts import HUMAN_GFF, HUMAN_DB_BASIC_INTRONS, HUMAN_GENOME_FASTA
+from asodesigner.timer import Timer
 
 
 def cond_print(text, verbose=False):
@@ -27,26 +21,39 @@ class LocusInfo:
         self.three_prime_utr = ""
 
 
+def create_human_genome_db(path: Path):
+    print("Creating human genome database. WARNING - this is slow!")
+    with Timer() as t:
+        db = gffutils.create_db(str(HUMAN_GFF), dbfn=str(path), force=True, keep_order=True,
+                                merge_strategy='merge', sort_attribute_values=True)
+    print(f"DB create took: {t.elapsed_time}s")
+    return db
+
+
+def get_fasta_dict_from_path(fasta_path: Path):
+    if fasta_path.suffix == ".gz":
+        print("Fasta is compressed, consider decompressing for performance")
+        with gzip.open(str(fasta_path), 'rt') as handle:
+            return SeqIO.to_dict(SeqIO.parse(handle, 'fasta'))
+
+    with open(str(fasta_path), 'r') as handle:
+        return SeqIO.to_dict(SeqIO.parse(handle, 'fasta'))
+
+
 def get_locus_to_data_dict():
     db_path = Path(HUMAN_DB_BASIC_INTRONS)
 
     if not db_path.exists():
-        start = time.time()
-        db = gffutils.create_db(str(HUMAN_GFF), dbfn=str(db_path), force=True, keep_order=True,
-                                merge_strategy='merge', sort_attribute_values=True)
-        end = time.time()
-        print(f"DB create took: {end - start}s")
+        # db = create_human_genome_db(db_path)
+        raise ValueError(f"Please read the README.md! After that put the db path in {str(db_path)}")
     else:
         db = gffutils.FeatureDB(str(db_path))
         # db.update(list(db.create_introns())) # Uncomment to create introns
 
-    start = time.time()
-    # with gzip.open(str(HUMAN_GENOME_FASTA_GZ), 'rt') as handle:
-    #     fasta_dict = SeqIO.to_dict(SeqIO.parse(handle, 'fasta'))
-    with open(str(HUMAN_TRANSCRIPTS_FASTA), 'r') as handle:
-        fasta_dict = SeqIO.to_dict(SeqIO.parse(handle, 'fasta'))
-    end = time.time()
-    print(f"Time to unzip fasta: {end - start}s")
+    with Timer() as t:
+        fasta_dict = get_fasta_dict_from_path(HUMAN_GENOME_FASTA)
+
+    print(f"Time to unzip fasta: {t.elapsed_time}s")
 
     locus_to_data = dict()
     locus_to_strand = dict()
@@ -82,24 +89,22 @@ def get_locus_to_data_dict():
             l.reverse()
 
         locus_to_data[locus_tag].exons = [element for _, element in l]
-    print(f"Reversing took: {end - start}s")
 
     return locus_to_data
 
 
 if __name__ == '__main__':
-    start = time.time()
-    gene_to_data = get_locus_to_data_dict()
-    end = time.time()
-    print(f"Time to read full human: {end - start}s")
+    with Timer() as t:
+        gene_to_data = get_locus_to_data_dict()
 
-    start = time.time()
-    i = 0
-    for gene in gene_to_data.items():
-        print(gene[0])
-        i += len(gene[1].exons[0])
-        continue
-    end = time.time()
-    print(f"Iterate took: {end - start}s, i={i}")
+    print(f"Time to read full human: {t.elapsed_time}s")
+
+    with Timer() as t:
+        i = 0
+        for gene in gene_to_data.items():
+            print(gene[0])
+            i += len(gene[1].exons[0])
+            continue
+    print(f"Iterate took: {t.elapsed_time}s, i={i}")
     # print(gene_to_data)
     # print(len(gene_to_data))
