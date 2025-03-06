@@ -1,20 +1,18 @@
-import time
-
 from asodesigner.read_yeast import get_locus_to_data_dict_alternative, get_locus_to_data_dict
 import difflib
 import pytest
 
+from asodesigner.timer import Timer
+
 
 def test_locus():
-    start = time.time()
-    locus_to_data = get_locus_to_data_dict()
-    end = time.time()
-    print(f"Regular Took: {end - start}s")
+    with Timer() as t:
+        locus_to_data = get_locus_to_data_dict()
+    print(f"Regular Took: {t.elapsed_time}s")
 
-    start = time.time()
-    locus_to_data_alt = get_locus_to_data_dict_alternative()
-    end = time.time()
-    print(f"DB Took: {end - start}s")
+    with Timer() as t:
+        locus_to_data_alt = get_locus_to_data_dict_alternative()
+    print(f"DB Took: {t.elapsed_time}s")
 
     for key, value in locus_to_data.items():
         alt_exons = locus_to_data_alt[key].exons

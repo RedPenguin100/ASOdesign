@@ -1,7 +1,6 @@
 from numba.typed import Dict, List
 from numba import njit, types
 import numpy as np
-import time
 
 
 @njit

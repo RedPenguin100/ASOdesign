@@ -1,4 +1,3 @@
-import time
 import math
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -10,6 +9,7 @@ from fuzzysearch import find_near_matches
 
 from asodesigner.consts import HUMAN_TRANSCRIPTS_FASTA
 from asodesigner.target_finder import get_gfp_first_exp
+from asodesigner.timer import Timer
 from asodesigner.util import get_antisense
 
 
@@ -37,13 +37,11 @@ class Experiment:
         self.target_sequence = None
 
 
-
 def main():
-    start = time.time()
-    with open(str(HUMAN_TRANSCRIPTS_FASTA), 'r') as handle:
-        fasta_dict = SeqIO.to_dict(SeqIO.parse(handle, 'fasta'))
-    end = time.time()
-    print(f"Reading FASTA took: {end - start}s")
+    with Timer() as t:
+        with open(str(HUMAN_TRANSCRIPTS_FASTA), 'r') as handle:
+            fasta_dict = SeqIO.to_dict(SeqIO.parse(handle, 'fasta'))
+    print(f"Reading FASTA took: {t.elapsed_time}s")
 
     tasks = []
     # gfp_seq = get_antisense(get_gfp_first_exp())
@@ -61,14 +59,13 @@ def main():
             tasks.append((i, l, experiment.target_sequence, fasta_dict))
 
     results = []
-    start = time.time()
-    with ProcessPoolExecutor() as executor:
-        futures = [executor.submit(process_sense, arg) for arg in tasks]
+    with Timer() as t:
+        with ProcessPoolExecutor() as executor:
+            futures = [executor.submit(process_sense, arg) for arg in tasks]
 
-        for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
-            results.append(future.result())
-    end = time.time()
-    print(f"Read off targets in: {end - start}s")
+            for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
+                results.append(future.result())
+    print(f"Read off targets in: {t.elapsed_time}s")
 
     columns = ['sense_start', 'sense_length', '0_matches', '1_matches', '2_matches', '3_matches']
     df = pd.DataFrame(results, columns=columns)
