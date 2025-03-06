@@ -1,10 +1,10 @@
-import types
-
 from numba.typed import Dict, List
+from numba import njit, types
+import numpy as np
+import time
 
-from numba import njit
 
-
+@njit
 def get_longer_string(s1: str, s2: str) -> str:
     return s1 if len(s1) >= len(s2) else s2
 
