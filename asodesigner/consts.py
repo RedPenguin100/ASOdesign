@@ -15,7 +15,7 @@ GFP_FIRST_EXP_FASTA = DATA_PATH / 'GFP_first_exp.fasta'
 YEAST_DATA = DATA_PATH / 'yeast' / 'yeast_data'
 YEAST_FASTA_PATH = YEAST_DATA / 'GCF_000146045.2' / 'GCF_000146045.2_R64_genomic.fna'
 YEAST_GFF_PATH = YEAST_DATA / 'GCF_000146045.2' / 'genomic.gff'
-YEAST_DB_PATH = YEAST_DATA / 'GCF_000146045.2' / 'yeast_gff.db'
+YEAST_DB_PATH = YEAST_DATA / 'GCF_000146045.2' / 'dbs' / 'yeast_gff.db'
 YEAST_FIVE_PRIME_UTR = YEAST_DATA / 'SGD_all_ORFs_5prime_UTRs.fsa'
 YEAST_THREE_PRIME_UTR = YEAST_DATA / 'SGD_all_ORFs_3prime_UTRs.fsa'
 
