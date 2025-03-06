@@ -1,0 +1,8 @@
+pypdf2==3.0.1
+pdfplumber==0.11.5
+gffutils==0.13
+tqdm==4.67.1
+fuzzysearch==0.7.3
+viennarna==2.7.0
+gsl==2.5 # Important!
+numba==0.61.0
