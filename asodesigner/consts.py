@@ -31,3 +31,8 @@ HUMAN_DB_PATH = HUMAN_DATA / 'dbs'
 HUMAN_DB = HUMAN_DB_PATH / 'human_gff.db'
 HUMAN_DB_BASIC = HUMAN_DB_PATH / 'human_gff_basic.db'
 HUMAN_DB_BASIC_INTRONS = HUMAN_DB_PATH / 'human_gff_basic_introns.db'
+
+# External
+EXTERNAL_PATH = PROJECT_PATH / 'external'
+RISEARCH_PATH = PROJECT_PATH / 'risesearch'
+RISEARCH1_BINARY_PATH = RISEARCH_PATH / 'RIsearch1' / 'RIsearch'

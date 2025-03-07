@@ -3,7 +3,6 @@ from numba import njit, types
 import numpy as np
 
 
-@njit
 def get_longer_string(s1: str, s2: str) -> str:
     return s1 if len(s1) >= len(s2) else s2
 

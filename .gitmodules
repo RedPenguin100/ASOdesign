@@ -1,0 +1,3 @@
+[submodule "external/risearch"]
+	path = external/risearch
+	url = https://github.com/RTH-tools/risearch
