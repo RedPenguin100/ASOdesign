@@ -6,7 +6,7 @@ from fuzzysearch import find_near_matches
 from asodesigner.util import get_antisense
 
 
-def get_gfp_first_exp():
+def get_gfp_first_exp(gap=100):
     gfp_obj = next(SeqIO.parse('../data/GFP_first_exp.fasta', 'fasta'))
     gfp_seq = str(gfp_obj.seq.upper())
 
@@ -17,7 +17,6 @@ def get_gfp_first_exp():
     if gfp_start == -1:
         raise ValueError("Context not found!")
 
-    gap = 100
     gfp_ext = gfp_context[gfp_start - gap: gfp_start + len(gfp_seq) + gap]
 
     return gfp_ext

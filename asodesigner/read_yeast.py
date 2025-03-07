@@ -17,6 +17,7 @@ from fuzzysearch import find_near_matches
 import pandas as pd
 import numpy as np
 
+from asodesigner.fold import get_weighted_energy, calculate_energies
 from asodesigner.target_finder import get_gfp_first_exp
 from asodesigner.timer import Timer
 from asodesigner.util import get_longer_string
@@ -181,9 +182,9 @@ def process_sense_one_locus(args):
     return df
 
 
-def process_sense_locus(args):
-    i, l, gfp_seq, locus_to_data = args
-    sense = gfp_seq[i:i + l]
+def process_sense_locus_off_target(args):
+    i, l, target_seq, locus_to_data = args
+    sense = target_seq[i:i + l]
     matches_per_distance = [0, 0, 0, 0]
 
     for locus_tag, locus_info in locus_to_data.items():
@@ -194,6 +195,24 @@ def process_sense_locus(args):
     # Return a tuple containing the starting index, current l, and match counts
     return (i, l, matches_per_distance[0],
             matches_per_distance[1], matches_per_distance[2], matches_per_distance[3])
+
+def process_fold_single_mrna(args):
+    locus_tag, locus_info = args
+    energies = calculate_energies(locus_info.full_mrna, step_size=15, window_size=40)
+    return locus_tag, energies
+
+def process_locus_fold_off_target(locus_to_data):
+
+    results = []
+    with ProcessPoolExecutor() as executor:
+        futures = [executor.submit(process_fold_single_mrna, arg) for arg in locus_to_data.items()]
+
+        for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
+            results.append(future.result())
+
+    for result in results:
+        print(result)
+
 
 
 def load_three_prime_utr(locus_to_data):
@@ -238,13 +257,14 @@ if __name__ == "__main__":
         for i in range(min(len(gfp_seq) - l + 1, max_iterations)):
             tasks.append((i, l, gfp_seq, locus_to_data))
 
-    with Timer() as t:
-        results = []
-        with ProcessPoolExecutor() as executor:
-            futures = [executor.submit(process_sense_locus, arg) for arg in tasks]
-
-            for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
-                results.append(future.result())
+    process_locus_fold_off_target(locus_to_data)
+    # with Timer() as t:
+    #     results = []
+    #     with ProcessPoolExecutor() as executor:
+    #         futures = [executor.submit(process_sense_locus_off_target, arg) for arg in tasks]
+    #
+    #         for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
+    #             results.append(future.result())
 
 
     columns = ['sense_start', 'sense_length', '0_matches', '1_matches', '2_matches', '3_matches']
@@ -267,9 +287,10 @@ if __name__ == "__main__":
     #
     # df = aggregated_df
 
-    df = pd.DataFrame(results, columns=columns)
 
-    print(f"Time took to find: {t.elapsed_time}s")
-
-    print(df)
-    df.to_csv('yeast_results/gfp_off_targets.csv', index=False)
+    # df = pd.DataFrame(results, columns=columns)
+    #
+    # print(f"Time took to find: {t.elapsed_time}s")
+    #
+    # print(df)
+    # df.to_csv('yeast_results/gfp_off_targets.csv', index=False)
