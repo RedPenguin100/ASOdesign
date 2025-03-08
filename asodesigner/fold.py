@@ -7,6 +7,7 @@ import random
 import subprocess
 from Bio.Seq import Seq
 from typing import Dict, List
+from enum import Enum
 
 from asodesigner.consts import RISEARCH1_BINARY_PATH
 
@@ -63,23 +64,42 @@ def get_mfe_scores(result: str) -> List[List[float]]:
     return mfe_results
 
 
-def get_trigger_mfe_scores_by_risearch(trigger: str, name_to_sequence: Dict[str, str]) -> str:
-    # logger.info(f"started evaluating a single trigger: {trigger}")
+class Interaction(Enum):
+    RNA_RNA = "RNA_RNA"
+    DNA_RNA_NO_WOBBLE = "DNA_RNA_NO_WOBBLE"
+    DNA_DNA = "DNA_DNA"
+
+
+def get_trigger_mfe_scores_by_risearch(trigger: str, name_to_sequence: Dict[str, str],
+                                       interaction_type: Interaction = Interaction.DNA_RNA_NO_WOBBLE,
+                                       minimum_score: int = 1200, neighborhood: int = 0) -> str:
     hash = random.getrandbits(64)
 
-    with open(f"target-{hash}.fa", "w") as f:
+    target_filename = f"target-{hash}.fa"
+    query_filename = f"query-{hash}.fa"
+
+    with open(target_filename, "w") as f:
         for name, sequence in name_to_sequence.items():
-            f.write(">" + str(name) + "\n" + sequence + "\n")
+            f.write(f">{name}\n{sequence}\n")
 
-    with open(f"query-{hash}.fa", "w") as f:
-        f.write(">trigger" + "\n" + str(Seq(trigger).reverse_complement_rna()) + "\n")
+    with open(query_filename, "w") as f:
+        f.write(f">trigger\n{Seq(trigger).reverse_complement_rna()}\n")
 
-    result = subprocess.check_output(
-        [RISEARCH1_BINARY_PATH, "-q", f"query-{hash}.fa", "-t", f"target-{hash}.fa", "-s", "1200", "-d", "30"],
-        universal_newlines=True,
-        text=True
-    )
-    os.remove(f"target-{hash}.fa")
-    os.remove(f"query-{hash}.fa")
+    if interaction_type == Interaction.DNA_RNA_NO_WOBBLE:
+        m = 'su95_noGU'
+    elif interaction_type == Interaction.RNA_RNA:
+        m = 't04'
+    else:
+        raise ValueError(f"Unsupported interaction type: {interaction_type}")
+
+    try:
+        result = subprocess.check_output(
+            [RISEARCH1_BINARY_PATH, "-q", query_filename, "-t", target_filename, "-s", f"{minimum_score}", "-d", "30", "-m", m, '-n', f"{neighborhood}"],
+            universal_newlines=True,
+            text=True
+        )
+    finally:
+        os.remove(target_filename)
+        os.remove(query_filename)
     # logger.info(f"finished evaluating a single trigger: {trigger}")
     return result
