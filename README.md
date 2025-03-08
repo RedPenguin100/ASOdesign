@@ -2,6 +2,7 @@
 
 This is the 2025 TAU iGEM project, dedicated to fighting cancer with ASO - antisense oligonucleotides.
 
+The project is designed to run primarily on Linux systems.
 
 ## Setup
 The data is not saved directly in git because it is too large.
@@ -27,4 +28,12 @@ Download the files named "SGD_all_ORGs_3prime_UTRs.fsa.zip", "SGD_all_ORFs_5_pri
 
 There is no account for alternative splicing in yeast, but it is extremely rare.
 
+## External dependencies
 
+### RISearch
+
+To compile you need to install first gcc, make, cmake.
+
+To compile RISearch1, simply enter the folder and run `make` and the executable will be created.
+
+To compile RIsearch2 you need to install first `sudo apt-get install libpcre3-dev` and then run `./rebuild.sh`
