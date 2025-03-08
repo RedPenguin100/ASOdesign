@@ -9,15 +9,16 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from BCBio import GFF
 from tqdm import tqdm
+import json
 
-from asodesigner.consts import YEAST_FASTA_PATH, YEAST_FIVE_PRIME_UTR, YEAST_THREE_PRIME_UTR, GFP1_PATH, YEAST_GFF_DB_PATH
+from asodesigner.consts import YEAST_FASTA_PATH, YEAST_FIVE_PRIME_UTR, YEAST_THREE_PRIME_UTR, GFP1_PATH, \
+    YEAST_GFF_DB_PATH
 from asodesigner.consts import YEAST_GFF_PATH
 from fuzzysearch import find_near_matches
 
 import pandas as pd
-import numpy as np
 
-from asodesigner.fold import get_weighted_energy, calculate_energies
+from asodesigner.fold import get_weighted_energy, calculate_energies, get_trigger_mfe_scores_by_risearch, get_mfe_scores
 from asodesigner.target_finder import get_gfp_first_exp
 from asodesigner.timer import Timer
 from asodesigner.util import get_longer_string
@@ -196,22 +197,43 @@ def process_sense_locus_off_target(args):
     return (i, l, matches_per_distance[0],
             matches_per_distance[1], matches_per_distance[2], matches_per_distance[3])
 
+
 def process_fold_single_mrna(args):
-    locus_tag, locus_info = args
-    energies = calculate_energies(locus_info.full_mrna, step_size=15, window_size=40)
+    locus_tag, locus_info, step_size, window_size = args
+    energies = calculate_energies(locus_info.full_mrna, step_size=step_size, window_size=window_size)
     return locus_tag, energies
 
-def process_locus_fold_off_target(locus_to_data):
 
-    results = []
+def process_locus_fold_off_target(locus_to_data):
+    window_size = 40
+    step_size = 15
+
+    results = dict()
     with ProcessPoolExecutor() as executor:
-        futures = [executor.submit(process_fold_single_mrna, arg) for arg in locus_to_data.items()]
+        futures = [executor.submit(process_fold_single_mrna, (arg[0], arg[1], step_size, window_size)) for arg in
+                   locus_to_data.items()]
 
         for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
-            results.append(future.result())
+            locus, energies = future.result()
+            results[locus] = energies.tolist()
 
-    for result in results:
-        print(result)
+    with open(f'yeast_results/Firstgfp_fold_off_targets_window_{window_size}_step_{step_size}.csv', 'w') as f:
+        json.dump(results, f, indent=4)
+
+
+def process_hybridization(args):
+    i, l, target_seq, locus_to_data = args
+
+    scores = get_trigger_mfe_scores_by_risearch(target_seq[i: i+l], locus_to_data, minimum_score=900, neighborhood=l)
+    energy_scores = get_mfe_scores(scores)
+    total_candidates = 0
+    energy_sum = 0
+    max_sum = 0
+    for locus_scores in energy_scores:
+        total_candidates += len(locus_scores)
+        energy_sum += sum(locus_scores)
+        max_sum += max(locus_scores)
+    return (i, l, total_candidates, energy_sum, max_sum)
 
 
 
@@ -243,31 +265,36 @@ if __name__ == "__main__":
     for locus_name, locus_info in locus_to_data.items():
         locus_info.full_mrna = f"{locus_info.five_prime_utr}{locus_info.exon_concat}{locus_info.three_prime_utr}"
 
-    gfp_seq = get_gfp_first_exp()
-
-    sense = gfp_seq[0:18]
-    print("Sense: ", sense)
+    target_seq = get_gfp_first_exp()
 
     tasks = []
     l_values = [15, 16, 17, 18, 19, 20, 21, 22]
 
     max_iterations = math.inf
 
+    simple_locus_to_data = dict()
+    for i in range(len(locus_to_data)):
+        locus_name, locus_info = list(locus_to_data.items())[i]
+        simple_locus_to_data[locus_name] = locus_info.full_mrna
+
     for l in l_values:
-        for i in range(min(len(gfp_seq) - l + 1, max_iterations)):
-            tasks.append((i, l, gfp_seq, locus_to_data))
+        for i in range(min(len(target_seq) - l + 1, max_iterations)):
+            tasks.append((i, l, target_seq, simple_locus_to_data))
 
-    process_locus_fold_off_target(locus_to_data)
-    # with Timer() as t:
-    #     results = []
-    #     with ProcessPoolExecutor() as executor:
-    #         futures = [executor.submit(process_sense_locus_off_target, arg) for arg in tasks]
-    #
-    #         for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
-    #             results.append(future.result())
+    # process_locus_fold_off_target(locus_to_data)
 
+    with Timer() as t:
+        results = []
+        with ProcessPoolExecutor() as executor:
+            futures = [executor.submit(process_hybridization, arg) for arg in tasks]
 
-    columns = ['sense_start', 'sense_length', '0_matches', '1_matches', '2_matches', '3_matches']
+            for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
+                results.append(future.result())
+
+    # columns = ['sense_start', 'sense_length', '0_matches', '1_matches', '2_matches', '3_matches']
+    columns = ['sense_start', 'sense_length', 'total_hybridization_candidates', 'total_off_target_energy', 'total_max_sum']
+    df = pd.DataFrame(results, columns=columns)
+    df.to_csv(f'yeast_results/Firsthybridization_candidates3.csv', index=False)
 
     # with Timer() as t:
     #    chunks = list(divide(600, locus_to_data.items()))
@@ -286,7 +313,6 @@ if __name__ == "__main__":
     #
     #
     # df = aggregated_df
-
 
     # df = pd.DataFrame(results, columns=columns)
     #
