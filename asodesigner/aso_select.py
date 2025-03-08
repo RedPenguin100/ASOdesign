@@ -6,10 +6,12 @@ from Bio import SeqIO
 from asodesigner.target_finder import get_gfp_first_exp
 from asodesigner.util import get_antisense
 
-ANTISENSE_PROPERTIES_CSVS = ['antisense_fold.csv', 'antisense_melting_temperature.csv',
-                             'antisense_nucleotide_properties.csv',
+import matplotlib.pyplot as plt
+
+ANTISENSE_PROPERTIES_CSVS = ['_antisense_fold.csv', 'antisense_melting_temperature.csv',
+                             'antisense_nucleotide_properties.csv', 'on_target_fold.csv', '_antisense_self_dimerization_unmodified.csv'
                              ]
-ENVIRONMENT_PROPERTIES_CSVS = ['gfp_off_targets.csv']
+ENVIRONMENT_PROPERTIES_CSVS = ['gfp_off_targets.csv', 'hybridization_candidates3.csv']
 
 
 def filter_gc_content(df, min_content=-math.inf, max_content=math.inf):
