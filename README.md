@@ -20,11 +20,13 @@ For S. Cerevisiae I did not find a transcriptome as the only available data was 
 The S. Cerevisiae genome is the RefSeq Assembly downloaded via ncbi:
 https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000146045.2/ <br>
 Select the Genome assembly, RefSeq only
+Unzip the result to create a GCF folder inside data/yeast/yeast_data folder
+
 
 For the 3/5 UTR information I used 
 http://sgd-archive.yeastgenome.org/sequence/S288C_reference/ <br>
 
-Download the files named "SGD_all_ORGs_3prime_UTRs.fsa.zip", "SGD_all_ORFs_5_prime_UTRs.fsa"
+Download the files named "SGD_all_ORFs_3prime_UTRs.fsa.zip", "SGD_all_ORFs_5_prime_UTRs.fsa"
 
 There is no account for alternative splicing in yeast, but it is extremely rare.
 
