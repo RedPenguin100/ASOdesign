@@ -8,6 +8,7 @@ import gffutils
 from Bio import SeqIO
 from Bio.Seq import Seq
 from BCBio import GFF
+from more_itertools import divide
 from tqdm import tqdm
 import json
 
@@ -18,8 +19,9 @@ from fuzzysearch import find_near_matches
 
 import pandas as pd
 
+from asodesigner.read_utils import process_hybridization
 from asodesigner.fold import get_weighted_energy, calculate_energies, get_trigger_mfe_scores_by_risearch, get_mfe_scores
-from asodesigner.target_finder import get_gfp_first_exp
+from asodesigner.target_finder import get_gfp_first_exp, get_gfp_second_exp
 from asodesigner.timer import Timer
 from asodesigner.util import get_longer_string
 
@@ -158,16 +160,11 @@ def process_sense_one_locus(args):
     for locus_data in locus_data_chunk:
         locus_name, locus_info = locus_data
 
-        sequences = locus_info.exons
-        cds_mrna = "".join(str(seq) for seq in sequences)
-
-        full_mrna = locus_info.five_prime_utr + cds_mrna + locus_info.three_prime_utr
-
         for l in lvalues:
             for i in range(len(gfp_seq) - l + 1):
                 sense = gfp_seq[i:i + l]
 
-                matches = find_near_matches(sense, full_mrna, max_insertions=0, max_deletions=0, max_l_dist=3)
+                matches = find_near_matches(sense, locus_info.full_mrna, max_insertions=0, max_deletions=0, max_l_dist=3)
                 for match in matches:
                     matches_per_distance[match.dist] += 1
 
@@ -189,7 +186,7 @@ def process_sense_locus_off_target(args):
     matches_per_distance = [0, 0, 0, 0]
 
     for locus_tag, locus_info in locus_to_data.items():
-        matches = find_near_matches(sense, locus_info.full_mrna, max_insertions=0, max_deletions=0, max_l_dist=3)
+        matches = find_near_matches(sense, locus_info, max_insertions=0, max_deletions=0, max_l_dist=3)
         for match in matches:
             matches_per_distance[match.dist] += 1
 
@@ -220,23 +217,6 @@ def process_locus_fold_off_target(locus_to_data):
     with open(f'yeast_results/Firstgfp_fold_off_targets_window_{window_size}_step_{step_size}.csv', 'w') as f:
         json.dump(results, f, indent=4)
 
-
-def process_hybridization(args):
-    i, l, target_seq, locus_to_data = args
-
-    scores = get_trigger_mfe_scores_by_risearch(target_seq[i: i+l], locus_to_data, minimum_score=900, neighborhood=l)
-    energy_scores = get_mfe_scores(scores)
-    total_candidates = 0
-    energy_sum = 0
-    max_sum = 0
-    for locus_scores in energy_scores:
-        total_candidates += len(locus_scores)
-        energy_sum += sum(locus_scores)
-        max_sum += max(locus_scores)
-    return (i, l, total_candidates, energy_sum, max_sum)
-
-
-
 def load_three_prime_utr(locus_to_data):
     for record in SeqIO.parse(YEAST_THREE_PRIME_UTR, "fasta"):
         locus = record.name.split('_')[4]
@@ -265,7 +245,8 @@ if __name__ == "__main__":
     for locus_name, locus_info in locus_to_data.items():
         locus_info.full_mrna = f"{locus_info.five_prime_utr}{locus_info.exon_concat}{locus_info.three_prime_utr}"
 
-    target_seq = get_gfp_first_exp()
+    target_seq = get_gfp_second_exp()
+    experiment_name = 'Second'
 
     tasks = []
     l_values = [15, 16, 17, 18, 19, 20, 21, 22]
@@ -283,40 +264,38 @@ if __name__ == "__main__":
 
     # process_locus_fold_off_target(locus_to_data)
 
-    with Timer() as t:
-        results = []
-        with ProcessPoolExecutor() as executor:
-            futures = [executor.submit(process_hybridization, arg) for arg in tasks]
+    # with Timer() as t:
+    #     results = []
+    #     with ProcessPoolExecutor() as executor:
+    #         futures = [executor.submit(process_hybridization, arg) for arg in tasks]
+    #
+    #         for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
+    #             results.append(future.result())
+    #
+    # columns = ['sense_start', 'sense_length', 'total_hybridization_candidates', 'total_off_target_energy',
+    #            'total_max_sum', 'total_binary_sum']
+    # df = pd.DataFrame(results, columns=columns)
+    # df.to_csv(f'yeast_results/{experiment_name}hybridization_candidates3.csv', index=False)
 
+    columns = ['sense_start', 'sense_length', '0_matches', '1_matches', '2_matches', '3_matches']
+
+    results = []
+    with Timer() as t:
+        with ProcessPoolExecutor() as executor:
+            futures = [executor.submit(process_sense_locus_off_target, arg) for arg in tasks]
             for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
+
                 results.append(future.result())
 
-    # columns = ['sense_start', 'sense_length', '0_matches', '1_matches', '2_matches', '3_matches']
-    columns = ['sense_start', 'sense_length', 'total_hybridization_candidates', 'total_off_target_energy', 'total_max_sum']
     df = pd.DataFrame(results, columns=columns)
-    df.to_csv(f'yeast_results/Firsthybridization_candidates3.csv', index=False)
 
-    # with Timer() as t:
-    #    chunks = list(divide(600, locus_to_data.items()))
-    #    for chunk in chunks:
-    #        tasks.append((l_values, gfp_seq, chunk))
-    #
-    #    aggregated_df = pd.DataFrame(columns=columns)
-    #    with ProcessPoolExecutor() as executor:
-    #        futures = [executor.submit(process_sense_one_locus, arg) for arg in tasks]
-    #        for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
-    #            df = future.result()
-    #
-    #            combined_df = pd.concat([aggregated_df, df], ignore_index=True)
-    #
-    #            aggregated_df = combined_df.groupby(['sense_start', 'sense_length'], as_index=False).sum()
-    #
-    #
-    # df = aggregated_df
+    aggregated_df = df.groupby(['sense_start', 'sense_length'], as_index=False).sum()
 
-    # df = pd.DataFrame(results, columns=columns)
-    #
-    # print(f"Time took to find: {t.elapsed_time}s")
-    #
-    # print(df)
-    # df.to_csv('yeast_results/gfp_off_targets.csv', index=False)
+
+    df = aggregated_df
+    df.to_csv('yeast_results/gfp_off_targets.csv', index=False)
+
+
+    print(f"Time took to find: {t.elapsed_time}s")
+
+    print(df)
