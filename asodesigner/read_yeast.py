@@ -7,26 +7,20 @@ from typing import Dict
 
 import gffutils
 from Bio import SeqIO
-from Bio.Seq import Seq
 from BCBio import GFF
-from more_itertools import divide
 from tqdm import tqdm
 import json
 
 from asodesigner.consts import YEAST_FASTA_PATH, YEAST_FIVE_PRIME_UTR, YEAST_THREE_PRIME_UTR, GFP1_PATH, \
     YEAST_GFF_DB_PATH
 from asodesigner.consts import YEAST_GFF_PATH
-from fuzzysearch import find_near_matches
 
-import pandas as pd
-
-from asodesigner.experiment import Experiment
+from asodesigner.experiment import Experiment, get_experiments
 
 from asodesigner.process_utils import run_off_target_wc_analysis, run_off_target_hybridization_analysis
 from asodesigner.fold import calculate_energies
-from asodesigner.target_finder import get_gfp_first_exp, get_gfp_second_exp
 from asodesigner.timer import Timer
-from asodesigner.util import get_longer_string, get_antisense
+from asodesigner.util import get_longer_string
 
 
 def cond_print(text, verbose=False):
@@ -206,15 +200,12 @@ def get_full_locus_to_data() -> Dict[str, LocusInfo]:
 if __name__ == "__main__":
     locus_to_data = get_full_locus_to_data()
 
-    experiment = Experiment()
-    experiment.target_sequence = get_gfp_second_exp()
-    experiment.name = 'Second'
-    experiment.l_values = [16, 17, 18, 19, 20, 21, 22]
-    tasks = []
+    experiments = get_experiments(['Second'])
 
     simple_locus_to_data = dict()
     for locus_name, locus_info in locus_to_data.items():
         simple_locus_to_data[locus_name] = locus_info.full_mrna
 
-    # run_off_target_wc_analysis(experiment, locus_to_data, simple_locus_to_data, organism='yeast')
-    run_off_target_hybridization_analysis(experiment, locus_to_data, simple_locus_to_data, organism='yeast')
+    for experiment in experiments:
+        # run_off_target_wc_analysis(experiment, locus_to_data, simple_locus_to_data, organism='yeast')
+        run_off_target_hybridization_analysis(experiment, locus_to_data, simple_locus_to_data, organism='yeast')
