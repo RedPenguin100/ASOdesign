@@ -100,6 +100,8 @@ def dump_target_file(target_filename: str, name_to_sequence: Dict[str, str]):
 def get_trigger_mfe_scores_by_risearch(trigger: str, name_to_sequence: Dict[str, str],
                                        interaction_type: Interaction = Interaction.DNA_RNA_NO_WOBBLE,
                                        minimum_score: int = 900, neighborhood: int = 0, parsing_type=None, target_file_cache=None) -> str:
+    if not RISEARCH1_BINARY_PATH.is_file():
+        raise FileNotFoundError(f'RIsearch binary is not found at {RISEARCH1_BINARY_PATH}. Please read the "RIsearch" part of the project readme.')
     hash = random.getrandbits(64)
 
     if target_file_cache is None:
