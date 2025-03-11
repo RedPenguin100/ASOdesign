@@ -1,4 +1,3 @@
-import math
 import bisect
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -10,9 +9,10 @@ from Bio import SeqIO
 from BCBio import GFF
 from tqdm import tqdm
 import json
+import warnings
 
 from asodesigner.consts import YEAST_FASTA_PATH, YEAST_FIVE_PRIME_UTR, YEAST_THREE_PRIME_UTR, GFP1_PATH, \
-    YEAST_GFF_DB_PATH
+    YEAST_GFF_DB_PATH, YEAST_README
 from asodesigner.consts import YEAST_GFF_PATH
 
 from asodesigner.experiment import Experiment, get_experiments
@@ -21,6 +21,7 @@ from asodesigner.process_utils import run_off_target_wc_analysis, run_off_target
 from asodesigner.fold import calculate_energies
 from asodesigner.timer import Timer
 from asodesigner.util import get_longer_string
+from asodesigner.validate import validate_yeast_files
 
 
 def cond_print(text, verbose=False):
@@ -38,14 +39,16 @@ class LocusInfo:
         self.full_mrna = None
 
 
-def get_locus_to_data_dict_alternative():
+def get_locus_to_data_dict_alternative(create_introns=False):
     db_path = Path(YEAST_GFF_DB_PATH)
 
     if not db_path.exists():
+        warnings.warn("Database not found, creating database, this is slow")
         with Timer() as t:
             db = gffutils.create_db(str(YEAST_GFF_PATH), dbfn=str(db_path), force=True, keep_order=True,
                                     merge_strategy='merge', sort_attribute_values=True)
-            # db.update(list(db.create_introns())) # Uncomment to create introns
+            if create_introns:
+                db.update(list(db.create_introns())) # Uncomment to create introns
         print(f"DB create took: {t.elapsed_time}s")
     else:
         print("Opening DB")
@@ -188,6 +191,7 @@ def load_five_prime_utr(locus_to_data):
 
 
 def get_full_locus_to_data() -> Dict[str, LocusInfo]:
+    validate_yeast_files()
     locus_to_data = get_locus_to_data_dict_alternative()
 
     load_five_prime_utr(locus_to_data)
