@@ -169,3 +169,10 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+
+# This project
+data/yeast/**/*.db
+data/yeast/**/*.gff
+data/yeast/**/*.fna
+data/yeast/**/*.fsa
