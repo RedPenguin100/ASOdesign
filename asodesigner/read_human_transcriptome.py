@@ -1,18 +1,8 @@
-import math
-import os
-
-from concurrent.futures import ProcessPoolExecutor, as_completed
-
-import pandas as pd
-from statsmodels.tsa.statespace.tests.results.results_var_R import res_ct_as_exog0
-from tqdm import tqdm
 from Bio import SeqIO
 
 from asodesigner.consts import HUMAN_TRANSCRIPTS_FASTA
 from asodesigner.experiment import Experiment
-from asodesigner.fold import dump_target_file
-from asodesigner.process_utils import process_hybridization, process_watson_crick_differences, \
-    run_off_target_hybridization_analysis
+from asodesigner.process_utils import run_off_target_hybridization_analysis
 from asodesigner.target_finder import get_gfp_second_exp
 from asodesigner.timer import Timer
 from asodesigner.util import get_antisense
