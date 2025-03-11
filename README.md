@@ -34,8 +34,14 @@ There is no account for alternative splicing in yeast, but it is extremely rare.
 
 ### RISearch
 
+When cloning, either
+1. Clone recursively with `git clone --recursive`
+2. After cloning, run git submodule update --init --recursive 
+
+This will initialize the RIsearch repository that is linked this under this repository
+
 To compile you need to install first gcc, make, cmake.
 
-To compile RISearch1, simply enter the folder and run `make` and the executable will be created.
+To compile RISearch1, simply enter the folder external/risearch/RIsearch1 and run `make`. The executable will be created.
 
 To compile RIsearch2 you need to install first `sudo apt-get install libpcre3-dev` and then run `./rebuild.sh`
