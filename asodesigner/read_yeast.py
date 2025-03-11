@@ -3,6 +3,7 @@ import bisect
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+from typing import Dict
 
 import gffutils
 from Bio import SeqIO
@@ -19,11 +20,13 @@ from fuzzysearch import find_near_matches
 
 import pandas as pd
 
-from asodesigner.read_utils import process_hybridization
-from asodesigner.fold import get_weighted_energy, calculate_energies, get_trigger_mfe_scores_by_risearch, get_mfe_scores
+from asodesigner.experiment import Experiment
+
+from asodesigner.process_utils import run_off_target_wc_analysis, run_off_target_hybridization_analysis
+from asodesigner.fold import calculate_energies
 from asodesigner.target_finder import get_gfp_first_exp, get_gfp_second_exp
 from asodesigner.timer import Timer
-from asodesigner.util import get_longer_string
+from asodesigner.util import get_longer_string, get_antisense
 
 
 def cond_print(text, verbose=False):
@@ -38,6 +41,7 @@ class LocusInfo:
         self.five_prime_utr = ""
         self.three_prime_utr = ""
         self.exon_concat = None
+        self.full_mrna = None
 
 
 def get_locus_to_data_dict_alternative():
@@ -146,55 +150,6 @@ def get_locus_to_data_dict():
     return locus_to_data
 
 
-def process_sense_one_locus(args):
-    lvalues, gfp_seq, locus_data_chunk = args
-    matches_per_distance = [0, 0, 0, 0]
-
-    df = pd.DataFrame(
-        columns=['sense_start', 'sense_length', '0_matches', '1_matches', '2_matches', '3_matches']).set_index(
-        ['sense_start', 'sense_length'])
-
-    count = 0
-    split_size = 100
-
-    for locus_data in locus_data_chunk:
-        locus_name, locus_info = locus_data
-
-        for l in lvalues:
-            for i in range(len(gfp_seq) - l + 1):
-                sense = gfp_seq[i:i + l]
-
-                matches = find_near_matches(sense, locus_info.full_mrna, max_insertions=0, max_deletions=0, max_l_dist=3)
-                for match in matches:
-                    matches_per_distance[match.dist] += 1
-
-                if (i, l) not in df.index:
-                    df.loc[len(df)] = [i, l, matches_per_distance[0], matches_per_distance[1], matches_per_distance[2],
-                                       matches_per_distance[3]]
-
-        count += 1
-        if count == split_size:
-            df = df.groupby(['sense_start', 'sense_length'], as_index=False).sum()
-            count = 0
-
-    return df
-
-
-def process_sense_locus_off_target(args):
-    i, l, target_seq, locus_to_data = args
-    sense = target_seq[i:i + l]
-    matches_per_distance = [0, 0, 0, 0]
-
-    for locus_tag, locus_info in locus_to_data.items():
-        matches = find_near_matches(sense, locus_info, max_insertions=0, max_deletions=0, max_l_dist=3)
-        for match in matches:
-            matches_per_distance[match.dist] += 1
-
-    # Return a tuple containing the starting index, current l, and match counts
-    return (i, l, matches_per_distance[0],
-            matches_per_distance[1], matches_per_distance[2], matches_per_distance[3])
-
-
 def process_fold_single_mrna(args):
     locus_tag, locus_info, step_size, window_size = args
     energies = calculate_energies(locus_info.full_mrna, step_size=step_size, window_size=window_size)
@@ -217,6 +172,7 @@ def process_locus_fold_off_target(locus_to_data):
     with open(f'yeast_results/Firstgfp_fold_off_targets_window_{window_size}_step_{step_size}.csv', 'w') as f:
         json.dump(results, f, indent=4)
 
+
 def load_three_prime_utr(locus_to_data):
     for record in SeqIO.parse(YEAST_THREE_PRIME_UTR, "fasta"):
         locus = record.name.split('_')[4]
@@ -237,65 +193,28 @@ def load_five_prime_utr(locus_to_data):
                                                           locus_info.five_prime_utr)
 
 
-if __name__ == "__main__":
+def get_full_locus_to_data() -> Dict[str, LocusInfo]:
     locus_to_data = get_locus_to_data_dict_alternative()
 
     load_five_prime_utr(locus_to_data)
     load_three_prime_utr(locus_to_data)
     for locus_name, locus_info in locus_to_data.items():
         locus_info.full_mrna = f"{locus_info.five_prime_utr}{locus_info.exon_concat}{locus_info.three_prime_utr}"
+    return locus_to_data
 
-    target_seq = get_gfp_second_exp()
-    experiment_name = 'Second'
 
+if __name__ == "__main__":
+    locus_to_data = get_full_locus_to_data()
+
+    experiment = Experiment()
+    experiment.target_sequence = get_gfp_second_exp()
+    experiment.name = 'Second'
+    experiment.l_values = [16, 17, 18, 19, 20, 21, 22]
     tasks = []
-    l_values = [15, 16, 17, 18, 19, 20, 21, 22]
-
-    max_iterations = math.inf
 
     simple_locus_to_data = dict()
-    for i in range(len(locus_to_data)):
-        locus_name, locus_info = list(locus_to_data.items())[i]
+    for locus_name, locus_info in locus_to_data.items():
         simple_locus_to_data[locus_name] = locus_info.full_mrna
 
-    for l in l_values:
-        for i in range(min(len(target_seq) - l + 1, max_iterations)):
-            tasks.append((i, l, target_seq, simple_locus_to_data))
-
-    # process_locus_fold_off_target(locus_to_data)
-
-    # with Timer() as t:
-    #     results = []
-    #     with ProcessPoolExecutor() as executor:
-    #         futures = [executor.submit(process_hybridization, arg) for arg in tasks]
-    #
-    #         for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
-    #             results.append(future.result())
-    #
-    # columns = ['sense_start', 'sense_length', 'total_hybridization_candidates', 'total_off_target_energy',
-    #            'total_max_sum', 'total_binary_sum']
-    # df = pd.DataFrame(results, columns=columns)
-    # df.to_csv(f'yeast_results/{experiment_name}hybridization_candidates3.csv', index=False)
-
-    columns = ['sense_start', 'sense_length', '0_matches', '1_matches', '2_matches', '3_matches']
-
-    results = []
-    with Timer() as t:
-        with ProcessPoolExecutor() as executor:
-            futures = [executor.submit(process_sense_locus_off_target, arg) for arg in tasks]
-            for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
-
-                results.append(future.result())
-
-    df = pd.DataFrame(results, columns=columns)
-
-    aggregated_df = df.groupby(['sense_start', 'sense_length'], as_index=False).sum()
-
-
-    df = aggregated_df
-    df.to_csv('yeast_results/gfp_off_targets.csv', index=False)
-
-
-    print(f"Time took to find: {t.elapsed_time}s")
-
-    print(df)
+    # run_off_target_wc_analysis(experiment, locus_to_data, simple_locus_to_data, organism='yeast')
+    run_off_target_hybridization_analysis(experiment, locus_to_data, simple_locus_to_data, organism='yeast')
