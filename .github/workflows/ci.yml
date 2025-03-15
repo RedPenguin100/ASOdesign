@@ -8,7 +8,11 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash -el {0}
@@ -34,10 +38,6 @@ jobs:
           auto-update-conda: false
           environment-file: environment.yml # Use an environment file to define your dependencies
           activate-environment: aso_design       # Name of the conda environment defined in environment.yml
-      - name: debug
-        run: |
-          conda info
-          conda list
       - name: Install package
         run: |
           conda develop .
