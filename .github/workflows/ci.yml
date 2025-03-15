@@ -24,6 +24,14 @@ jobs:
       - name: Run Make
         run: make
         working-directory: external/risearch/RIsearch1
+      - name: Cache-miniconda
+        uses: actions/cache@v3
+        env:
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.yml') }}
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -34,7 +42,7 @@ jobs:
           activate-environment: aso_design       # Name of the conda environment defined in environment.yml
           environment-file: environment.yml # Use an environment file to define your dependencies
 
-      - name: Install package
+      - name: Install asodesigner
         run: |
           conda develop .
       - name: Run tests
