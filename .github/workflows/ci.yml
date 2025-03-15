@@ -28,10 +28,9 @@ jobs:
       - name: Run Make
         run: make
         working-directory: external/risearch/RIsearch1
-      - name: Set up Miniconda with mamaba
+      - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          mamba-version: "*"
           python-version: 3.11             # Specify your desired Python version
           channels: conda-forge,bioconda,defaults
           auto-activate-base: false
