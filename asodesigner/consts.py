@@ -10,6 +10,9 @@ DATA_PATH = PROJECT_PATH / 'data'
 GFP1_PATH = DATA_PATH / 'gfp1_seq.txt'
 GFP_FIRST_EXP_FASTA = DATA_PATH / 'GFP_first_exp.fasta'
 
+# Experiments
+EXPERIMENT_RESULTS = PROJECT_PATH / 'experiment_results'
+
 # Yeast
 YEAST_DATA = DATA_PATH / 'yeast'
 YEAST_FASTA_PATH = YEAST_DATA / 'GCF_000146045.2_R64_genomic.fna'

@@ -1,24 +1,20 @@
 import bisect
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict
 
 import gffutils
 from Bio import SeqIO
 from BCBio import GFF
-from tqdm import tqdm
-import json
 import warnings
 
-from asodesigner.consts import YEAST_FASTA_PATH, YEAST_FIVE_PRIME_UTR, YEAST_THREE_PRIME_UTR, GFP1_PATH, \
-    YEAST_GFF_DB_PATH, YEAST_README
+from asodesigner.consts import YEAST_FASTA_PATH, YEAST_FIVE_PRIME_UTR, YEAST_THREE_PRIME_UTR, YEAST_GFF_DB_PATH
 from asodesigner.consts import YEAST_GFF_PATH
 
-from asodesigner.experiment import Experiment, get_experiments
+from asodesigner.experiment import get_experiments, get_experiment, maybe_create_experiment_folders
+from asodesigner.file_utils import read_yeast_genome_fasta_dict
 
-from asodesigner.process_utils import run_off_target_wc_analysis, run_off_target_hybridization_analysis
-from asodesigner.fold import calculate_energies
+from asodesigner.process_utils import run_off_target_wc_analysis, run_off_target_hybridization_analysis, LocusInfo
 from asodesigner.timer import Timer
 from asodesigner.util import get_longer_string
 from asodesigner.validate import validate_yeast_files
@@ -27,16 +23,6 @@ from asodesigner.validate import validate_yeast_files
 def cond_print(text, verbose=False):
     if verbose:
         print(text)
-
-
-class LocusInfo:
-    def __init__(self):
-        self.exons = []
-        self.introns = []
-        self.five_prime_utr = ""
-        self.three_prime_utr = ""
-        self.exon_concat = None
-        self.full_mrna = None
 
 
 def get_locus_to_data_dict_alternative(create_introns=False):
@@ -48,13 +34,13 @@ def get_locus_to_data_dict_alternative(create_introns=False):
             db = gffutils.create_db(str(YEAST_GFF_PATH), dbfn=str(db_path), force=True, keep_order=True,
                                     merge_strategy='merge', sort_attribute_values=True)
             if create_introns:
-                db.update(list(db.create_introns())) # Uncomment to create introns
+                db.update(list(db.create_introns()))  # Uncomment to create introns
         print(f"DB create took: {t.elapsed_time}s")
     else:
         print("Opening DB")
         db = gffutils.FeatureDB(str(db_path))
 
-    fasta_dict = SeqIO.to_dict(SeqIO.parse(str(YEAST_FASTA_PATH), 'fasta'))
+    fasta_dict = read_yeast_genome_fasta_dict()
     locus_to_data = dict()
     locus_to_strand = dict()
 
@@ -147,29 +133,6 @@ def get_locus_to_data_dict():
     return locus_to_data
 
 
-def process_fold_single_mrna(args):
-    locus_tag, locus_info, step_size, window_size = args
-    energies = calculate_energies(locus_info.full_mrna, step_size=step_size, window_size=window_size)
-    return locus_tag, energies
-
-
-def process_locus_fold_off_target(locus_to_data):
-    window_size = 40
-    step_size = 15
-
-    results = dict()
-    with ProcessPoolExecutor() as executor:
-        futures = [executor.submit(process_fold_single_mrna, (arg[0], arg[1], step_size, window_size)) for arg in
-                   locus_to_data.items()]
-
-        for future in tqdm(as_completed(futures), total=len(futures), desc='Processing'):
-            locus, energies = future.result()
-            results[locus] = energies.tolist()
-
-    with open(f'yeast_results/Firstgfp_fold_off_targets_window_{window_size}_step_{step_size}.csv', 'w') as f:
-        json.dump(results, f, indent=4)
-
-
 def load_three_prime_utr(locus_to_data):
     for record in SeqIO.parse(YEAST_THREE_PRIME_UTR, "fasta"):
         locus = record.name.split('_')[4]
@@ -202,9 +165,11 @@ def get_full_locus_to_data() -> Dict[str, LocusInfo]:
 
 
 if __name__ == "__main__":
-    locus_to_data = get_full_locus_to_data()
+    second_experiment = 'Second'
+    maybe_create_experiment_folders(second_experiment)
+    experiments = get_experiments([second_experiment])
 
-    experiments = get_experiments(['Second'])
+    locus_to_data = get_full_locus_to_data()
 
     simple_locus_to_data = dict()
     for locus_name, locus_info in locus_to_data.items():

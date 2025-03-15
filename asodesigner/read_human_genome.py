@@ -2,23 +2,18 @@ import bisect
 from pathlib import Path
 
 import gffutils
+from numba import njit
+from numba.typed import Dict
+
 from asodesigner.consts import HUMAN_GFF, HUMAN_DB_BASIC_INTRONS, HUMAN_DB_BASIC_INTRONS_GZ
 from asodesigner.file_utils import read_human_genome_fasta_dict
+from asodesigner.process_utils import LocusInfo
 from asodesigner.timer import Timer
 
 
 def cond_print(text, verbose=False):
     if verbose:
         print(text)
-
-
-class LocusInfo:
-    def __init__(self):
-        self.exons = []
-        self.introns = []
-        self.five_prime_utr = ""
-        self.three_prime_utr = ""
-
 
 def create_human_genome_db(path: Path, create_introns=False):
     print("Creating human genome database. WARNING - this is slow!")
@@ -99,7 +94,6 @@ if __name__ == '__main__':
     with Timer() as t:
         i = 0
         for gene in gene_to_data.items():
-            print(gene[0])
             i += len(gene[1].exons[0])
             continue
     print(f"Iterate took: {t.elapsed_time}s, i={i}")

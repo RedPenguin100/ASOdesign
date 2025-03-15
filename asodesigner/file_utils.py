@@ -5,7 +5,7 @@ from pathlib import Path
 from Bio import SeqIO
 
 from asodesigner.consts import HUMAN_TRANSCRIPTS_FASTA, HUMAN_TRANSCRIPTS_FASTA_GZ, HUMAN_GENOME_FASTA, \
-    HUMAN_GENOME_FASTA_GZ
+    HUMAN_GENOME_FASTA_GZ, YEAST_FASTA_PATH
 from asodesigner.timer import Timer
 
 
@@ -33,6 +33,7 @@ def read_human_transcriptome_fasta_dict():
     raise FileNotFoundError(
         f"Did not find {HUMAN_TRANSCRIPTS_FASTA} or {HUMAN_TRANSCRIPTS_FASTA_GZ}, please consider the README.md")
 
+
 def read_human_genome_fasta_dict():
     if HUMAN_GENOME_FASTA.is_file():
         return get_fasta_dict_from_path(HUMAN_GENOME_FASTA)
@@ -43,3 +44,8 @@ def read_human_genome_fasta_dict():
     raise FileNotFoundError(
         f"Did not find {HUMAN_GENOME_FASTA} or {HUMAN_GENOME_FASTA_GZ}, please consider the README.md")
 
+
+def read_yeast_genome_fasta_dict():
+    if YEAST_FASTA_PATH.is_file():
+        return get_fasta_dict_from_path(YEAST_FASTA_PATH)
+    raise FileNotFoundError(f"Did not find {YEAST_FASTA_PATH}, please consider the README.md")
