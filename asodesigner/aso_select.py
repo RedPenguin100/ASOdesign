@@ -1,16 +1,10 @@
 import pandas as pd
 import math
 
-from asodesigner.experiment import get_experiments
-from asodesigner.read_human_transcriptome import Experiment
-from asodesigner.target_finder import get_gfp_second_exp
+from asodesigner.consts import EXPERIMENT_RESULTS
+from asodesigner.experiment import get_experiments, Experiment
+from asodesigner.features import SENSE_LENGTH, SENSE_START
 from asodesigner.util import get_antisense
-
-ANTISENSE_PROPERTIES_CSVS = ['_antisense_fold.csv', 'antisense_melting_temperature.csv',
-                             'antisense_nucleotide_properties.csv', 'on_target_fold.csv', 'on_target_energy.csv',
-                             '_antisense_self_dimerization_unmodified.csv'
-                             ]
-OFF_TARGET_PROPERTIES_CSVS = ['gfp_off_targets.csv', 'gfp_hybridization_off_targets.csv']
 
 
 def filter_gc_content(df, min_content=-math.inf, max_content=math.inf):
@@ -57,27 +51,34 @@ def get_organism_results(organism: str, columns, csv_filename):
 
 
 def load_all_features(experiment: Experiment):
+    current_experiment_results = EXPERIMENT_RESULTS / experiment.name
+    antisense_results = current_experiment_results / 'antisense_results'
+
     tables = []
-    for csv_path in ANTISENSE_PROPERTIES_CSVS:
-        df = pd.read_csv(f"antisense_results/{experiment.name}{csv_path}")
+    for csv_path in antisense_results.glob('*.csv'):
+        df = pd.read_csv(csv_path)
         tables.append(df)
 
-    for csv_filename in OFF_TARGET_PROPERTIES_CSVS:
-        if 'gfp_off_targets' in csv_filename:
-            columns = ['0_matches', '1_matches', '2_matches', '3_matches']
-        elif 'hybridization_off_targets' in csv_filename:
-            columns = ['total_hybridization_candidates', 'total_hybridization_energy', 'total_hybridization_max_sum',
-                       'total_hybridization_binary_sum']
-        else:
-            raise ValueError(f"CSV filename {csv_filename} not recognized")
+    yeast_results = current_experiment_results / 'yeast_results'
+    human_results = current_experiment_results / 'human_results'
 
-        for organism in ['yeast', 'human']:
-            df = get_organism_results(organism=organism, columns=columns, csv_filename=csv_filename)
-            tables.append(df)
+    KEY_COLUMNS = [SENSE_START, SENSE_LENGTH]
+
+    for csv_path in yeast_results.glob('*.csv'):
+        df = pd.read_csv(csv_path)
+        rename_map = {col: f'{col}_yeast' for col in df.columns if col not in KEY_COLUMNS}
+        df.rename(columns=rename_map, inplace=True)
+        tables.append(df)
+
+    for csv_path in human_results.glob('*.csv'):
+        df = pd.read_csv(csv_path)
+        rename_map = {col: f'{col}_human' for col in df.columns if col not in KEY_COLUMNS}
+        df.rename(columns=rename_map, inplace=True)
+        tables.append(df)
 
     merged_df = tables[0]
     for table in tables[1:]:
-        merged_df = pd.merge(merged_df, table, on=['sense_start', 'sense_length'])
+        merged_df = pd.merge(merged_df, table, on=KEY_COLUMNS)
 
     print('All columns: ', merged_df.columns)
     all_asos = []
@@ -156,4 +157,5 @@ if __name__ == "__main__":
                                                           col not in most_important_columns]
             merged_df = merged_df[reordered_columns]
 
-        merged_df.to_csv(f'{experiment.name}_all_features.csv', index=False)
+        experiment_path = EXPERIMENT_RESULTS / experiment.name
+        merged_df.to_csv(experiment_path / f'all_features.csv', index=False)

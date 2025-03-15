@@ -7,6 +7,7 @@ from fuzzysearch import find_near_matches
 
 from asodesigner.experiment import Experiment, get_experiments
 from asodesigner.fold import get_weighted_energy, calculate_energies, get_trigger_mfe_scores_by_risearch, get_mfe_scores
+from asodesigner.result import save_results_on_target
 from asodesigner.timer import Timer
 from asodesigner.util import get_antisense
 
@@ -30,8 +31,7 @@ def record_internal_fold(experiment: Experiment):
     columns = ['sense_start', 'sense_length', 'structure', 'mfe']
 
     df = pd.DataFrame(results, columns=columns)
-
-    df.to_csv(f'antisense_results/{experiment.name}_antisense_fold.csv', index=False)
+    save_results_on_target(df, experiment.name, 'antisense_fold')
     return df
 
 
@@ -45,8 +45,7 @@ def record_nucleotide_properties(experiment: Experiment):
     columns = ['sense_start', 'sense_length', 'gc_content', 'contains_GGGG']
 
     df = pd.DataFrame(results, columns=columns)
-
-    df.to_csv(f'antisense_results/{experiment.name}antisense_nucleotide_properties.csv', index=False)
+    save_results_on_target(df, experiment.name, 'antisense_nucleotide_properties')
     return df
 
 
@@ -60,8 +59,7 @@ def record_melting_temperature(experiment: Experiment):
     columns = ['sense_start', 'sense_length', 'melting_temperature']
 
     df = pd.DataFrame(results, columns=columns)
-
-    df.to_csv(f'antisense_results/{experiment.name}antisense_melting_temperature.csv', index=False)
+    save_results_on_target(df, experiment.name, 'antisense_melting_temperature')
     return df
 
 
@@ -76,8 +74,7 @@ def record_self_dimerization_unmodified(experiment: Experiment):
                'aso_aso_structure_found', 'aso_aso_tm']
 
     df = pd.DataFrame(results, columns=columns)
-
-    df.to_csv(f'antisense_results/{experiment.name}_antisense_self_dimerization_unmodified.csv', index=False)
+    save_results_on_target(df, experiment.name, 'antisense_self_dimerization_unmodified')
     return df
 
 
@@ -95,8 +92,7 @@ def record_on_target_fold(experiment: Experiment):
     columns = ['sense_start', 'sense_length', 'on_target_fold_openness', 'on_target_fold_openness_normalized']
 
     df = pd.DataFrame(results, columns=columns)
-    df.to_csv(f'antisense_results/{experiment.name}on_target_fold.csv', index=False)
-
+    save_results_on_target(df, experiment.name, 'on_target_fold')
     return df
 
 
@@ -116,7 +112,7 @@ def record_on_target_energy_hybridization(experiment: Experiment):
 
     column = ['sense_start', 'sense_length', 'on_target_energy_fits', 'on_target_energy_sum', 'on_target_energy_max']
     df = pd.DataFrame(results, columns=column)
-    df.to_csv(f'antisense_results/{experiment.name}on_target_energy.csv', index=False)
+    save_results_on_target(df, experiment.name, 'on_target_energy')
     return df
 
 
@@ -142,7 +138,7 @@ def record_on_target_wc_hybridization(experiment: Experiment):
     for i in range(max_distance + 1):
         columns.append(f'on_matches_{i}')
     df = pd.DataFrame(results, columns=columns)
-    df.to_csv(f'antisense_results/{experiment.name}on_target_wc.csv', index=False)
+    save_results_on_target(df, experiment.name, 'on_target_wc')
     return df
 
 
