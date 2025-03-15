@@ -3,14 +3,18 @@ import pandas as pd
 from Bio import SeqIO
 from fuzzysearch import find_near_matches
 
+from asodesigner.consts import DATA_PATH
 from asodesigner.util import get_antisense
 
 
 def get_gfp_seq_and_context():
-    gfp_obj = next(SeqIO.parse('../data/GFP_first_exp.fasta', 'fasta'))
+    gfp_context_path = DATA_PATH / 'GFP_context.txt'
+    gfp_first_exp_path = DATA_PATH / 'GFP_first_exp.fasta'
+
+    gfp_obj = next(SeqIO.parse(str(gfp_first_exp_path), 'fasta'))
     gfp_seq = str(gfp_obj.seq.upper())
 
-    with open('../data/GFP_context.txt', 'r') as f:
+    with open(str(gfp_context_path), 'r') as f:
         gfp_context = f.read().upper()
     return (gfp_seq, gfp_context)
 
