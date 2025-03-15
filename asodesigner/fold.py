@@ -93,6 +93,7 @@ class Interaction(Enum):
 
 def dump_target_file(target_filename: str, name_to_sequence: Dict[str, str]):
     tmp_path = TMP_PATH / target_filename
+    TMP_PATH.mkdir(exist_ok=True)
     with open(tmp_path, "w") as f:
         for name, sequence in name_to_sequence.items():
             f.write(f">{name}\n{sequence}\n")
