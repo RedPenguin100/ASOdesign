@@ -4,6 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
+  - conda_build=25.1.2
   - _libgcc_mutex=0.1=main
   - _openmp_mutex=5.1=1_gnu
   - argcomplete=1.12.3=pyhd3eb1b0_0
