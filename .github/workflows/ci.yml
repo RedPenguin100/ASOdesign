@@ -27,7 +27,7 @@ jobs:
       - name: Cache-miniconda
         uses: actions/cache@v3
         env:
-          CACHE_NUMBER: 0
+          CACHE_NUMBER: 0 # Update this number if you want the cache to refresh
         with:
           path: ~/conda_pkgs_dir
           key:
