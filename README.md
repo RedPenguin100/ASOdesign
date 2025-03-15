@@ -4,7 +4,21 @@ This is the 2025 TAU iGEM project, dedicated to fighting cancer with ASO - antis
 
 The project is designed to run primarily on Linux systems.
 
-## Setup
+# Setup
+
+## Python
+Steps:
+1. Install Linux, preferably Ubuntu 24.04 
+2. Install python3.11
+3. Install miniconda
+4. Create miniconda environment
+5. Install dependencies using the miniconda environment `conda env create -f environment.yml`
+6. Activate the environment: `conda activatae aso_design`
+7. "Install" the `asodesigner` package as `conda develop .`
+8. Run `pytest` from the project root. If it works, then the setup is done!
+
+
+## Data
 The data is not saved directly in git because it is too large.
 
 ### Human

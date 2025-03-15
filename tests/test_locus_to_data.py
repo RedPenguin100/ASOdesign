@@ -1,10 +1,10 @@
 from asodesigner.read_yeast import get_locus_to_data_dict_alternative, get_locus_to_data_dict
-import difflib
 import pytest
 
 from asodesigner.timer import Timer
 
 
+@pytest.mark.slow
 def test_locus():
     with Timer() as t:
         locus_to_data = get_locus_to_data_dict()
@@ -26,6 +26,7 @@ def test_locus():
             assert exon == alt_exon, "key: " + key + " len exons " + str(len(exons)) + "i: " + str(i)
 
 
+@pytest.mark.slow
 def test_intron_regression():
     locus_to_data = get_locus_to_data_dict_alternative()
 
