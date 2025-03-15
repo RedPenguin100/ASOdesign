@@ -5,6 +5,7 @@ from pathlib import Path
 import gffutils
 from Bio import SeqIO
 from asodesigner.consts import HUMAN_GFF, HUMAN_DB_BASIC_INTRONS, HUMAN_GENOME_FASTA
+from asodesigner.file_utils import get_fasta_dict_from_path
 from asodesigner.timer import Timer
 
 
@@ -28,16 +29,6 @@ def create_human_genome_db(path: Path):
                                 merge_strategy='merge', sort_attribute_values=True)
     print(f"DB create took: {t.elapsed_time}s")
     return db
-
-
-def get_fasta_dict_from_path(fasta_path: Path):
-    if fasta_path.suffix == ".gz":
-        print("Fasta is compressed, consider decompressing for performance")
-        with gzip.open(str(fasta_path), 'rt') as handle:
-            return SeqIO.to_dict(SeqIO.parse(handle, 'fasta'))
-
-    with open(str(fasta_path), 'r') as handle:
-        return SeqIO.to_dict(SeqIO.parse(handle, 'fasta'))
 
 
 def get_locus_to_data_dict():
