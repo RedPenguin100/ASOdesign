@@ -23,5 +23,5 @@ jobs:
 
       - name: Run tests
         run: |
-          conda develop .
+          pip install -e .
           pytest
