@@ -1,11 +1,9 @@
 import bisect
-import gzip
 from pathlib import Path
 
 import gffutils
-from Bio import SeqIO
-from asodesigner.consts import HUMAN_GFF, HUMAN_DB_BASIC_INTRONS, HUMAN_GENOME_FASTA
-from asodesigner.file_utils import get_fasta_dict_from_path
+from asodesigner.consts import HUMAN_GFF, HUMAN_DB_BASIC_INTRONS, HUMAN_DB_BASIC_INTRONS_GZ
+from asodesigner.file_utils import read_human_genome_fasta_dict
 from asodesigner.timer import Timer
 
 
@@ -22,29 +20,38 @@ class LocusInfo:
         self.three_prime_utr = ""
 
 
-def create_human_genome_db(path: Path):
+def create_human_genome_db(path: Path, create_introns=False):
     print("Creating human genome database. WARNING - this is slow!")
     with Timer() as t:
         db = gffutils.create_db(str(HUMAN_GFF), dbfn=str(path), force=True, keep_order=True,
                                 merge_strategy='merge', sort_attribute_values=True)
+        if create_introns:
+            db.update(list(db.create_introns()))
     print(f"DB create took: {t.elapsed_time}s")
     return db
 
 
-def get_locus_to_data_dict():
-    db_path = Path(HUMAN_DB_BASIC_INTRONS)
+def get_human_genome_annotation_db(create_db=False):
+    db_path = HUMAN_DB_BASIC_INTRONS
 
-    if not db_path.exists():
-        # db = create_human_genome_db(db_path)
-        raise ValueError(f"Please read the README.md! After that put the db path in {str(db_path)}")
+    if not db_path.is_file():
+        if HUMAN_DB_BASIC_INTRONS_GZ.is_file():
+            raise ValueError(
+                f"DB file is not unzipped: {HUMAN_DB_BASIC_INTRONS_GZ}, please unzip to use! (Consider README.md)")
+
+        if create_db:
+            db = create_human_genome_db(db_path, create_introns=True)
+        else:
+            raise ValueError(
+                f"DB not found in path: {str(db_path)}, either download it or create (please consider README.md)")
     else:
         db = gffutils.FeatureDB(str(db_path))
-        # db.update(list(db.create_introns())) # Uncomment to create introns
+    return db
 
-    with Timer() as t:
-        fasta_dict = get_fasta_dict_from_path(HUMAN_GENOME_FASTA)
 
-    print(f"Time to unzip fasta: {t.elapsed_time}s")
+def get_locus_to_data_dict(create_db=False):
+    db = get_human_genome_annotation_db(create_db)
+    fasta_dict = read_human_genome_fasta_dict()
 
     locus_to_data = dict()
     locus_to_strand = dict()
@@ -55,7 +62,7 @@ def get_locus_to_data_dict():
             continue
         locus_tags = feature.attributes['gene_name']
         if len(locus_tags) != 1:
-            raise ValueError(f"Multiple locuses: {locus_tags}")
+            raise ValueError(f"Multiple loci: {locus_tags}")
         locus_tag = locus_tags[0]
 
         if feature.featuretype == 'CDS':
@@ -87,7 +94,6 @@ def get_locus_to_data_dict():
 if __name__ == '__main__':
     with Timer() as t:
         gene_to_data = get_locus_to_data_dict()
-
     print(f"Time to read full human: {t.elapsed_time}s")
 
     with Timer() as t:

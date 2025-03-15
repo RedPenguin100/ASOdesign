@@ -31,9 +31,10 @@ HUMAN_TRANSCRIPTS_FASTA = HUMAN_V34 / 'gencode.v34.transcripts.fa'
 HUMAN_GENOME_FASTA_GZ = HUMAN_V34 / 'GRCh38.p13.genome.fa.gz'
 HUMAN_GENOME_FASTA = HUMAN_V34 / 'GRCh38.p13.genome.fa'
 HUMAN_DB_PATH = HUMAN_V34 / 'dbs'
-HUMAN_DB = HUMAN_V34 / 'human_gff.db'
-HUMAN_DB_BASIC = HUMAN_V34 / 'human_gff_basic.db'
-HUMAN_DB_BASIC_INTRONS = HUMAN_V34 / 'human_gff_basic_introns.db'
+HUMAN_DB = HUMAN_DB_PATH / 'human_gff.db'
+HUMAN_DB_BASIC = HUMAN_DB_PATH / 'human_gff_basic.db'
+HUMAN_DB_BASIC_INTRONS = HUMAN_DB_PATH / 'human_gff_basic_introns.db'
+HUMAN_DB_BASIC_INTRONS_GZ = HUMAN_DB_PATH / 'human_gff_basic_introns.db.gz'
 
 # External
 EXTERNAL_PATH = PROJECT_PATH / 'external'
