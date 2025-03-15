@@ -16,14 +16,16 @@ jobs:
       - name: Set up Miniconda with mamaba
         uses: conda-incubator/setup-miniconda@v2
         with:
-          mamba-version: "*"
           python-version: 3.11             # Specify your desired Python version
           channels: conda-forge,bioconda,defaults
           auto-activate-base: false
           auto-update-conda: false
           environment-file: environment.yml # Use an environment file to define your dependencies
           activate-environment: aso_design       # Name of the conda environment defined in environment.yml
-
+      - name: debug
+        run: |
+          conda info
+          conda list
       - name: Install package
         run: |
           pip install -e . --no-deps
