@@ -36,8 +36,9 @@ jobs:
           channels: conda-forge,bioconda,defaults
           auto-activate-base: false
           auto-update-conda: false
-          environment-file: environment.yml # Use an environment file to define your dependencies
           activate-environment: aso_design       # Name of the conda environment defined in environment.yml
+          environment-file: environment.yml # Use an environment file to define your dependencies
+
       - name: Install package
         run: |
           conda develop .
