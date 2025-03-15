@@ -23,5 +23,5 @@ jobs:
 
       - name: Run tests
         run: |
-          pip install -e .
+          pip install -e . --no-deps
           pytest
