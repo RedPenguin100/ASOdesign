@@ -10,7 +10,7 @@ from typing import Dict, List
 from enum import Enum
 from numba import njit
 
-from asodesigner.consts import RISEARCH1_BINARY_PATH
+from asodesigner.consts import RISEARCH1_BINARY_PATH, TMP_PATH
 
 
 def get_weighted_energy(target_start, l, step_size, energies, window_size):
@@ -92,9 +92,11 @@ class Interaction(Enum):
     DNA_DNA = "DNA_DNA"
 
 def dump_target_file(target_filename: str, name_to_sequence: Dict[str, str]):
-    with open(target_filename, "w") as f:
+    tmp_path = TMP_PATH / target_filename
+    with open(tmp_path, "w") as f:
         for name, sequence in name_to_sequence.items():
             f.write(f">{name}\n{sequence}\n")
+    return tmp_path
 
 
 def get_trigger_mfe_scores_by_risearch(trigger: str, name_to_sequence: Dict[str, str],
@@ -102,18 +104,22 @@ def get_trigger_mfe_scores_by_risearch(trigger: str, name_to_sequence: Dict[str,
                                        minimum_score: int = 900, neighborhood: int = 0, parsing_type=None, target_file_cache=None) -> str:
     if not RISEARCH1_BINARY_PATH.is_file():
         raise FileNotFoundError(f'RIsearch binary is not found at {RISEARCH1_BINARY_PATH}. Please read the "RIsearch" part of the project readme.')
+    # used to dump cached files
+    TMP_PATH.mkdir(exist_ok=True)
+
     hash = random.getrandbits(64)
 
     if target_file_cache is None:
         target_filename = f"target-{hash}.fa"
-        dump_target_file(target_filename, name_to_sequence)
+        target_path = dump_target_file(target_filename, name_to_sequence)
     else:
         target_filename = target_file_cache
+        target_path = target_filename
 
     query_filename = f"query-{hash}.fa"
+    query_path = TMP_PATH / query_filename
 
-
-    with open(query_filename, "w") as f:
+    with open(query_path, "w") as f:
         f.write(f">trigger\n{Seq(trigger).reverse_complement_rna()}\n")
 
     if interaction_type == Interaction.DNA_RNA_NO_WOBBLE:
@@ -124,7 +130,7 @@ def get_trigger_mfe_scores_by_risearch(trigger: str, name_to_sequence: Dict[str,
         raise ValueError(f"Unsupported interaction type: {interaction_type}")
 
     try:
-        args = [RISEARCH1_BINARY_PATH, "-q", query_filename, "-t", target_filename, "-s", f"{minimum_score}",
+        args = [RISEARCH1_BINARY_PATH, "-q", str(query_path), "-t", str(target_path), "-s", f"{minimum_score}",
                 "-d", "30", "-m", m, '-n', f"{neighborhood}"]
         if parsing_type is not None:
             args.append(f'-p{parsing_type}')
@@ -133,7 +139,7 @@ def get_trigger_mfe_scores_by_risearch(trigger: str, name_to_sequence: Dict[str,
                                          )
     finally:
         if target_file_cache is None:
-            os.remove(target_filename)
-        os.remove(query_filename)
+            os.remove(target_path)
+        query_path.unlink()
     # logger.info(f"finished evaluating a single trigger: {trigger}")
     return result

@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, asdict
 
@@ -11,6 +12,7 @@ from asodesigner.consts import EXPERIMENT_RESULTS
 from asodesigner.experiment import Experiment
 from asodesigner.features import SENSE_START, SENSE_LENGTH
 from asodesigner.fold import get_trigger_mfe_scores_by_risearch, get_mfe_scores, dump_target_file, calculate_energies
+from asodesigner.result import save_results_organism
 from asodesigner.timer import Timer
 
 
@@ -129,7 +131,7 @@ def run_off_target_wc_analysis(experiment: Experiment, fasta_dict=None, simplifi
     df = pd.DataFrame(results, columns=columns)
 
     print(df)
-    save_results(df, organism, experiment.name, 'wc_off_targets')
+    save_results_organism(df, organism, experiment.name, 'wc_off_targets')
 
 
 class Task:
@@ -155,29 +157,30 @@ class ResultHybridization:
     total_hybridization_binary_sum: int
 
 
-
-
 def run_off_target_hybridization_analysis(experiment: Experiment, fasta_dict=None, simplified_fasta_dict=None,
                                           organism=None):
     validate_organism(organism)
     simplified_fasta_dict = validated_get_simplified_fasta_dict(fasta_dict, simplified_fasta_dict)
 
-    target_cache_filename = 'target-cache.fa'
+    hash = random.getrandbits(64)
+
+    target_cache_filename = f'target-cache-{hash}.fa'
+    # to improve speed of process_hybridization
+    target_cache_path = dump_target_file(target_cache_filename, simplified_fasta_dict)
 
     tasks = []
     for l in experiment.l_values:
         for i in range(len(experiment.target_sequence) - l + 1):
-            tasks.append(Task(i, l, experiment.target_sequence, simplified_fasta_dict, target_cache_filename))
+            tasks.append(Task(i, l, experiment.target_sequence, simplified_fasta_dict, str(target_cache_path)))
 
-    # to improve speed of process_hybridization
-    dump_target_file(target_cache_filename, simplified_fasta_dict)
+
 
     results = parallelize_function(process_hybridization, tasks)
 
     df = pd.DataFrame([asdict(result) for result in results])
 
     print(df)
-    save_results(df, organism, experiment.name, 'hybridization_off_targets')
+    save_results_organism(df, organism, experiment.name, 'hybridization_off_targets')
     os.remove(target_cache_filename)
 
 
@@ -196,6 +199,7 @@ def run_off_target_fold_analysis(locus_to_data, experiment_name, organism):
     for result in results:
         results_dict[result[0]] = result[1]
 
-    with open(f'{organism}_results/{experiment_name}gfp_fold_off_targets_window_{window_size}_step_{step_size}.csv',
-              'w') as f:
+    result_path = (EXPERIMENT_RESULTS / experiment_name /
+                   f"{organism}_results" / f'fold_off_target_fold_energy_window_{window_size}_step_{step_size}.json')
+    with open(result_path, 'w') as f:
         json.dump(results, f, indent=4)
