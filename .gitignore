@@ -176,3 +176,4 @@ data/yeast/**/*.db
 data/yeast/**/*.gff
 data/yeast/**/*.fna
 data/yeast/**/*.fsa
+data/yeast/**/*.Identifier
