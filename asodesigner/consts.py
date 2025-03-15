@@ -10,6 +10,9 @@ DATA_PATH = PROJECT_PATH / 'data'
 GFP1_PATH = DATA_PATH / 'gfp1_seq.txt'
 GFP_FIRST_EXP_FASTA = DATA_PATH / 'GFP_first_exp.fasta'
 
+# tmp folder - for files that are dumped to disk during calculation
+TMP_PATH = PROJECT_PATH / 'tmp'
+
 # Experiments
 EXPERIMENT_RESULTS = PROJECT_PATH / 'experiment_results'
 
