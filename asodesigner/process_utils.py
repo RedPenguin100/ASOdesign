@@ -89,7 +89,7 @@ def run_off_target_wc_analysis(experiment: Experiment, fasta_dict=None, simplifi
 def run_off_target_hybridization_analysis(experiment: Experiment, fasta_dict=None, simplified_fasta_dict=None,
                                           organism=None):
     if organism not in ['human', 'yeast']:
-        raise ValueError('Organism must be either "human" or "yeast"')
+        raise ValueError(f'Organism={organism} must be either "human" or "yeast"')
 
     if fasta_dict is None and simplified_fasta_dict is None:
         raise ValueError('Either simplified_fasta_dict or fasta_dict must be specified')
