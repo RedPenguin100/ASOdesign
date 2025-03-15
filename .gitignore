@@ -184,3 +184,4 @@ data/human/**/*.fna
 data/human/**/*.fa
 data/human/**/*.gz
 data/human/**/*.Identifier
+data/human/**/*.db
