@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, asdict
 
@@ -161,15 +162,18 @@ def run_off_target_hybridization_analysis(experiment: Experiment, fasta_dict=Non
     validate_organism(organism)
     simplified_fasta_dict = validated_get_simplified_fasta_dict(fasta_dict, simplified_fasta_dict)
 
-    target_cache_filename = 'target-cache.fa'
+    hash = random.getrandbits(64)
+
+    target_cache_filename = f'target-cache-{hash}.fa'
+    # to improve speed of process_hybridization
+    target_cache_path = dump_target_file(target_cache_filename, simplified_fasta_dict)
 
     tasks = []
     for l in experiment.l_values:
         for i in range(len(experiment.target_sequence) - l + 1):
-            tasks.append(Task(i, l, experiment.target_sequence, simplified_fasta_dict, target_cache_filename))
+            tasks.append(Task(i, l, experiment.target_sequence, simplified_fasta_dict, str(target_cache_path)))
 
-    # to improve speed of process_hybridization
-    dump_target_file(target_cache_filename, simplified_fasta_dict)
+
 
     results = parallelize_function(process_hybridization, tasks)
 
