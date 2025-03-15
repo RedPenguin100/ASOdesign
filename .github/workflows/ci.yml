@@ -20,7 +20,8 @@ jobs:
           auto-update-conda: true          # Update conda to the latest version
           environment-file: environment.yml # Use an environment file to define your dependencies
           activate-environment: biology_default       # Name of the conda environment defined in environment.yml
-          cache-prefix: conda-cache         # Optional: set a cache prefix to speed up dependency installation
 
       - name: Run tests
-        run: pytest
+        run: |
+          conda develop .
+          pytest
