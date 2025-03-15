@@ -178,8 +178,9 @@ data/yeast/**/*.fna
 data/yeast/**/*.fsa
 data/yeast/**/*.Identifier
 
-data/human/**/.gff
-data/human/**/.dna
-data/human/**/.fna
-data/human/**/.gz
-data/human/**/.Identifier
+data/human/**/*.gff
+data/human/**/*.dna
+data/human/**/*.fna
+data/human/**/*.fa
+data/human/**/*.gz
+data/human/**/*.Identifier
