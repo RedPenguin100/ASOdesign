@@ -187,3 +187,5 @@ data/human/**/*.Identifier
 data/human/**/*.db
 
 tmp/
+
+cache/**/*.Identifier
