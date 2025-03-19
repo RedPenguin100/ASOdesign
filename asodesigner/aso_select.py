@@ -110,52 +110,71 @@ def load_all_features(experiment: Experiment):
     return merged_df
 
 
+irrelevant_columns = ['aso_aso_delta_g', 'aso_aso_delta_h', 'aso_aso_delta_s', 'aso_aso_structure_found',
+                      '2_matches_human', '3_matches_human', '2_matches_yeast', '3_matches_yeast']
+
+
+def combine_experiments(experiments):
+    experiment_dfs = []
+    experiment_names = []
+
+    for experiment in experiments:
+        merged_df = load_all_features(experiment)
+        # Best way to distinguish experiments in the same table
+        merged_df[SENSE_START] = experiment.name + merged_df[SENSE_START].astype(str)
+        experiment_dfs.append(merged_df)
+        experiment_names.append(experiment.name)
+        print(merged_df)
+
+
 if __name__ == "__main__":
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1000)
 
-    experiment_names = ['Second', 'SecondScrambled']
+    experiment_names = ['Fourth']
+    # experiment_names = ['Second', 'ThirdDegron', 'Fourth']
     experiments = get_experiments(experiment_names)
+    combine_experiments(experiments)
 
-    for experiment in experiments:
-        merged_df = load_all_features(experiment)
-        # Per Tamir notes
-        merged_df = merged_df[merged_df['0_matches_human'] == 0]
-        merged_df = merged_df[merged_df['0_matches_yeast'] == 0]
-
-        if experiment.name == 'Second':
-            most_important_columns = ['sense_start', 'sense_length', 'on_target_energy_max',
-                                      'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
-                                      'total_hybridization_max_sum_yeast', 'mfe']
-
-            merged_df = merged_df.sort_values(
-                by=['on_target_energy_max', 'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
-                    'total_hybridization_max_sum_yeast', 'mfe'], ascending=[True, False, True, True, False],
-                inplace=False)
-
-            irrelevant_columns = ['aso_aso_delta_g', 'aso_aso_delta_h', 'aso_aso_delta_s', 'aso_aso_structure_found',
-                                  '2_matches_human', '3_matches_human', '2_matches_yeast', '3_matches_yeast']
-            merged_df = merged_df.drop(irrelevant_columns, axis=1)
-            reordered_columns = most_important_columns + [col for col in merged_df.columns if
-                                                          col not in most_important_columns]
-            merged_df = merged_df[reordered_columns]
-        elif experiment.name == 'SecondScrambled':
-            most_important_columns = ['sense_start', 'sense_length', 'on_target_energy_max',
-                                      'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
-                                      'total_hybridization_max_sum_yeast', 'mfe']
-
-            # On scrambled we would like to miss the target, at least not aim for it
-            merged_df = merged_df.sort_values(
-                by=['on_target_energy_max', 'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
-                    'total_hybridization_max_sum_yeast', 'mfe'], ascending=[False, True, True, True, False],
-                inplace=False)
-
-            irrelevant_columns = ['aso_aso_delta_g', 'aso_aso_delta_h', 'aso_aso_delta_s', 'aso_aso_structure_found',
-                                  '2_matches_human', '3_matches_human', '2_matches_yeast', '3_matches_yeast']
-            merged_df = merged_df.drop(irrelevant_columns, axis=1)
-            reordered_columns = most_important_columns + [col for col in merged_df.columns if
-                                                          col not in most_important_columns]
-            merged_df = merged_df[reordered_columns]
-
-        experiment_path = EXPERIMENT_RESULTS / experiment.name
-        merged_df.to_csv(experiment_path / f'all_features.csv', index=False)
+    # for experiment in experiments:
+    #     merged_df = load_all_features(experiment)
+    #     # Per Tamir notes
+    #     merged_df = merged_df[merged_df['0_matches_human'] == 0]
+    #     merged_df = merged_df[merged_df['0_matches_yeast'] == 0]
+    #
+    #     if experiment.name == 'Second':
+    #         most_important_columns = ['sense_start', 'sense_length', 'on_target_energy_max',
+    #                                   'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
+    #                                   'total_hybridization_max_sum_yeast', 'mfe']
+    #
+    #         merged_df = merged_df.sort_values(
+    #             by=['on_target_energy_max', 'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
+    #                 'total_hybridization_max_sum_yeast', 'mfe'], ascending=[True, False, True, True, False],
+    #             inplace=False)
+    #
+    #         irrelevant_columns = ['aso_aso_delta_g', 'aso_aso_delta_h', 'aso_aso_delta_s', 'aso_aso_structure_found',
+    #                               '2_matches_human', '3_matches_human', '2_matches_yeast', '3_matches_yeast']
+    #         merged_df = merged_df.drop(irrelevant_columns, axis=1)
+    #         reordered_columns = most_important_columns + [col for col in merged_df.columns if
+    #                                                       col not in most_important_columns]
+    #         merged_df = merged_df[reordered_columns]
+    #     elif experiment.name == 'SecondScrambled':
+    #         most_important_columns = ['sense_start', 'sense_length', 'on_target_energy_max',
+    #                                   'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
+    #                                   'total_hybridization_max_sum_yeast', 'mfe']
+    #
+    #         # On scrambled we would like to miss the target, at least not aim for it
+    #         merged_df = merged_df.sort_values(
+    #             by=['on_target_energy_max', 'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
+    #                 'total_hybridization_max_sum_yeast', 'mfe'], ascending=[False, True, True, True, False],
+    #             inplace=False)
+    #
+    #         irrelevant_columns = ['aso_aso_delta_g', 'aso_aso_delta_h', 'aso_aso_delta_s', 'aso_aso_structure_found',
+    #                               '2_matches_human', '3_matches_human', '2_matches_yeast', '3_matches_yeast']
+    #         merged_df = merged_df.drop(irrelevant_columns, axis=1)
+    #         reordered_columns = most_important_columns + [col for col in merged_df.columns if
+    #                                                       col not in most_important_columns]
+    #         merged_df = merged_df[reordered_columns]
+    #
+    #     experiment_path = EXPERIMENT_RESULTS / experiment.name
+    #     merged_df.to_csv(experiment_path / f'all_features.csv', index=False)
