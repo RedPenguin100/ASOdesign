@@ -1,17 +1,20 @@
-from asodesigner.experiment import get_experiment
+from asodesigner.experiment import get_experiment, maybe_create_experiment_folders
 from asodesigner.file_utils import read_human_transcriptome_fasta_dict
-from asodesigner.process_utils import run_off_target_hybridization_analysis
+from asodesigner.process_utils import run_off_target_hybridization_analysis, run_off_target_wc_analysis
 
 
 def main():
-    fasta_dict = read_human_transcriptome_fasta_dict()
+    this_experiment = 'Fourth'
+    organism = 'human'
 
-    experiment = get_experiment('SecondScrambled')
+    fasta_dict = read_human_transcriptome_fasta_dict()
+    maybe_create_experiment_folders(this_experiment)
+    experiment = get_experiment(this_experiment)
 
     print(experiment.target_sequence)
 
-    run_off_target_hybridization_analysis(experiment, fasta_dict, organism='human')
-
+    run_off_target_wc_analysis(experiment, fasta_dict, organism=organism)
+    run_off_target_hybridization_analysis(experiment, fasta_dict, organism=organism)
 
 if __name__ == "__main__":
     main()
