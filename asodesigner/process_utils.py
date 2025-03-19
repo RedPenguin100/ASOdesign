@@ -171,10 +171,11 @@ def run_off_target_wc_analysis(experiment: Experiment, fasta_dict=None, simplifi
     full_results = []
     for i, l, antisense in iterate_template_antisense(aso_template, experiment.l_values):
         loaded_result = loaded_data[antisense]
-        full_results.append((i, l, loaded_result[0], loaded_result[1], loaded_result[2]))
+        full_results.append((i, l, loaded_result[0], loaded_result[1], loaded_result[2], loaded_result[3]))
 
     columns = [SENSE_START, SENSE_LENGTH, '0_matches', '1_matches', '2_matches', '3_matches']
-    df = pd.DataFrame(results, columns=columns)
+    df = pd.DataFrame(full_results, columns=columns)
+    df = df.sort_values(by=['sense_start', 'sense_length'])
 
     print(df)
     save_results_organism(df, organism, experiment.name, 'wc_off_targets')
@@ -206,7 +207,7 @@ class ResultHybridization:
 def load_cache_off_target_hybridization(organism):
     cache = f'off-target-cache-hybridization-{organism}.pickle'
     if os.path.exists(cache):
-        with open(f'off-target-cache-hybridization-{organism}.pickle', 'rb') as file:
+        with open(cache, 'rb') as file:
             loaded_data = pickle.load(file)
     else:
         loaded_data = dict()
@@ -270,6 +271,7 @@ def run_off_target_hybridization_analysis(experiment: Experiment, fasta_dict=Non
     df = pd.DataFrame([result for result in full_results], columns=columns)
 
     print(df)
+    df = df.sort_values(by=['sense_start', 'sense_length'])
     save_results_organism(df, organism, experiment.name, 'hybridization_off_targets')
     os.remove(target_cache_path)
 
