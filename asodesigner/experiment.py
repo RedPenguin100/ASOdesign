@@ -15,7 +15,6 @@ class Experiment:
         self.aso_template = None
         self.gc_content_filter = (-math.inf, math.inf)
 
-
     def get_aso_template(self):
         if self.aso_template is None:
             return self.target_sequence
@@ -62,7 +61,6 @@ def _get_experiments_dict() -> Dict[str, Experiment]:
     fourth.name = 'Fourth'
     fourth.l_values = DEFAULT_LENGTHS_UNMODIFIED
     name_to_experiment[fourth.name] = fourth
-
 
     return name_to_experiment
 

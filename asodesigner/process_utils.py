@@ -1,6 +1,5 @@
 import json
 import os
-import pickle
 import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, asdict
@@ -9,8 +8,9 @@ import pandas as pd
 from fuzzysearch import find_near_matches
 from tqdm import tqdm
 
-from asodesigner.aso_rank import iterate_template
-from asodesigner.consts import EXPERIMENT_RESULTS
+from asodesigner.cache import load_cache_off_target_hybridization, load_cache_off_target_wc, update_loaded_data, \
+    save_cache
+from asodesigner.consts import EXPERIMENT_RESULTS, CACHE_DIR
 from asodesigner.experiment import Experiment
 from asodesigner.features import SENSE_START, SENSE_LENGTH
 from asodesigner.fold import get_trigger_mfe_scores_by_risearch, get_mfe_scores, dump_target_file, calculate_energies
@@ -55,13 +55,12 @@ def process_fold_single_mrna(args):
 def process_hybridization(task):
     i = task.sense_start
     l = task.sense_length
-    aso_template = task.aso_template
     locus_to_data = task.simplified_fasta_dict
     target_cache_filename = task.target_cache_filename
 
     parsing_type = task.parsing_type
 
-    scores = get_trigger_mfe_scores_by_risearch(aso_template[i: i + l], locus_to_data,
+    scores = get_trigger_mfe_scores_by_risearch(task.get_sense(), locus_to_data,
                                                 minimum_score=task.minimum_score, neighborhood=l,
                                                 parsing_type=parsing_type,
                                                 target_file_cache=target_cache_filename)
@@ -126,22 +125,21 @@ def parallelize_function(function, tasks, max_threads=None):
     return results
 
 
-def load_cache_off_target_wc(organism):
-    cache = f'off-target-cache-wc-{organism}.pickle'
-    if os.path.exists(cache):
-        with open(cache, 'rb') as file:
-            loaded_data = pickle.load(file)
-    else:
-        loaded_data = dict()
+def wc_results_to_dict(results, aso_template):
+    results_dict = dict()
+    for result in results:
+        start = result[0]
+        length = result[1]
+        results_dict[get_antisense(aso_template[start:start + length])] = (result[2], result[3], result[4], result[5])
 
-    return loaded_data
+    return results_dict
 
 
 def run_off_target_wc_analysis(experiment: Experiment, fasta_dict=None, simplified_fasta_dict=None, organism=None):
     validate_organism(organism)
     simplified_fasta_dict = validated_get_simplified_fasta_dict(fasta_dict, simplified_fasta_dict)
 
-    loaded_data = load_cache_off_target_wc(organism)
+    loaded_data, cache_path = load_cache_off_target_wc(organism)
     aso_template = experiment.get_aso_template()
 
     tasks = []
@@ -155,18 +153,9 @@ def run_off_target_wc_analysis(experiment: Experiment, fasta_dict=None, simplifi
     print(f"Skipping {tasks_cached} tasks that were found in cache.")
     results = parallelize_function(process_watson_crick_differences, tasks)
 
-    results_dict = dict()
-    for result in results:
-        start = result[0]
-        length = result[1]
-        results_dict[get_antisense(aso_template[start:start + length])] = (result[2], result[3], result[4], result[5])
-
-    for result in results_dict:
-        if result not in loaded_data:
-            loaded_data[result] = results_dict[result]
-
-    with open(f'off-target-cache-wc-{organism}.pickle', 'wb') as file:
-        pickle.dump(loaded_data, file)
+    results_dict = wc_results_to_dict(results, aso_template)
+    update_loaded_data(loaded_data, results_dict)
+    save_cache(cache_path, loaded_data)
 
     full_results = []
     for i, l, antisense in iterate_template_antisense(aso_template, experiment.l_values):
@@ -193,6 +182,12 @@ class Task:
         self.parsing_type = '2'
         self.binary_cutoff = -20
 
+    def get_sense(self):
+        return self.aso_template[self.sense_start: self.sense_start + self.sense_length]
+
+    def get_antisense(self):
+        return get_antisense(self.get_sense())
+
 
 @dataclass
 class ResultHybridization:
@@ -203,16 +198,22 @@ class ResultHybridization:
     total_hybridization_max_sum: int
     total_hybridization_binary_sum: int
 
+    @staticmethod
+    def results_to_result_dict(results, aso_template):
+        results_dict = dict()
+        for result in results:
+            start = result.sense_start
+            length = result.sense_length
+            total_hybridization_candidates: int
+            total_hybridization_energy: int
+            total_hybridization_max_sum: int
+            total_hybridization_binary_sum: int
 
-def load_cache_off_target_hybridization(organism):
-    cache = f'off-target-cache-hybridization-{organism}.pickle'
-    if os.path.exists(cache):
-        with open(cache, 'rb') as file:
-            loaded_data = pickle.load(file)
-    else:
-        loaded_data = dict()
+            results_dict[get_antisense(aso_template[start:start + length])] = (
+                result.total_hybridization_candidates, result.total_hybridization_energy,
+                result.total_hybridization_max_sum, result.total_hybridization_binary_sum)
 
-    return loaded_data
+        return results_dict
 
 
 def run_off_target_hybridization_analysis(experiment: Experiment, fasta_dict=None, simplified_fasta_dict=None,
@@ -226,7 +227,7 @@ def run_off_target_hybridization_analysis(experiment: Experiment, fasta_dict=Non
     # to improve speed of process_hybridization
     target_cache_path = dump_target_file(target_cache_filename, simplified_fasta_dict)
 
-    loaded_data = load_cache_off_target_hybridization(organism)
+    loaded_data, cache_path = load_cache_off_target_hybridization(organism)
     aso_template = experiment.get_aso_template()
 
     tasks = []
@@ -241,25 +242,10 @@ def run_off_target_hybridization_analysis(experiment: Experiment, fasta_dict=Non
 
     results = parallelize_function(process_hybridization, tasks)
 
-    results_dict = dict()
-    for result in results:
-        start = result.sense_start
-        length = result.sense_length
-        total_hybridization_candidates: int
-        total_hybridization_energy: int
-        total_hybridization_max_sum: int
-        total_hybridization_binary_sum: int
+    results_dict = ResultHybridization.results_to_result_dict(results, aso_template)
 
-        results_dict[get_antisense(aso_template[start:start + length])] = (
-            result.total_hybridization_candidates, result.total_hybridization_energy,
-            result.total_hybridization_max_sum, result.total_hybridization_binary_sum)
-
-    for result in results_dict:
-        if result not in loaded_data:
-            loaded_data[result] = results_dict[result]
-
-    with open(f'off-target-cache-hybridization-{organism}.pickle', 'wb') as file:
-        pickle.dump(loaded_data, file)
+    update_loaded_data(loaded_data, results_dict)
+    save_cache(cache_path, loaded_data)
 
     full_results = []
     for i, l, antisense in iterate_template_antisense(aso_template, experiment.l_values):

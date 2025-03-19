@@ -15,6 +15,7 @@ TMP_PATH = PROJECT_PATH / 'tmp'
 
 # Experiments
 EXPERIMENT_RESULTS = PROJECT_PATH / 'experiment_results'
+CACHE_DIR = PROJECT_PATH / 'cache'
 
 # Yeast
 YEAST_DATA = DATA_PATH / 'yeast'
