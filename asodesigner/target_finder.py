@@ -77,6 +77,13 @@ def get_degron_and_gap_third_exp():
     return degron_and_gap
 
 
+# Includes - GFP, Degron, WPRE, 3UTR
+def get_extended_gfp():
+    gfp_seq, gfp_context = get_gfp_seq_and_context()
+    gfp_start = gfp_context.find(gfp_seq)
+    return gfp_context[gfp_start:]
+
+
 def get_degron_gfp_scrambled_third_exp():
     gfp_seq, gfp_context = get_gfp_seq_and_context()
     gfp_start = gfp_context.find(gfp_seq)

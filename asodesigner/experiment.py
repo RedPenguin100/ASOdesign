@@ -3,7 +3,7 @@ from typing import List, Dict
 
 from asodesigner.consts import EXPERIMENT_RESULTS
 from asodesigner.target_finder import get_gfp_second_exp, get_degron_and_gap_third_exp, \
-    get_degron_gfp_scrambled_third_exp, get_3utr_gfp
+    get_degron_gfp_scrambled_third_exp, get_3utr_gfp, get_extended_gfp
 from asodesigner.util import get_antisense
 
 
@@ -61,6 +61,21 @@ def _get_experiments_dict() -> Dict[str, Experiment]:
     fourth.name = 'Fourth'
     fourth.l_values = DEFAULT_LENGTHS_UNMODIFIED
     name_to_experiment[fourth.name] = fourth
+
+
+    # Finally
+    entire = Experiment()
+    entire.target_sequence = get_extended_gfp()
+    entire.name = 'Entire'
+    entire.l_values = DEFAULT_LENGTHS_UNMODIFIED
+    name_to_experiment[entire.name] = entire
+
+    entire_scrambled = Experiment()
+    entire_scrambled.target_sequence = get_extended_gfp()
+    entire_scrambled.aso_template = get_antisense(get_extended_gfp())[:300]
+    entire_scrambled.name = 'EntireScrambled'
+    entire_scrambled.l_values = DEFAULT_LENGTHS_UNMODIFIED
+    name_to_experiment[entire_scrambled.name] = entire_scrambled
 
     return name_to_experiment
 

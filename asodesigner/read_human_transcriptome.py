@@ -8,7 +8,7 @@ def main():
 
     fasta_dict = read_human_transcriptome_fasta_dict()
     # maybe_create_experiment_folders(this_experiment)
-    experiments = get_experiments(['Second'])
+    experiments = get_experiments(['EntireScrambled'])
 
     for experiment in experiments:
         print(experiment.target_sequence)

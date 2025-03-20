@@ -50,6 +50,56 @@ def get_organism_results(organism: str, columns, csv_filename):
     return df
 
 
+def get_explicit_antisense(merged_df, experiment):
+    all_asos = []
+    aso_template = experiment.aso_template
+    for row in merged_df.itertuples():
+        i, l = row.sense_start, row.sense_length
+        all_asos.append(get_antisense(aso_template[i:i + l]))
+    return all_asos
+
+
+def mark_regions(merged_df, experiment):
+    region_names = []
+    aso_template = experiment.get_aso_template()
+
+    if experiment.name == "Second":
+        for row in merged_df.itertuples():
+            if row.sense_start < 100:
+                region_names.append('start')
+            elif (row.sense_start + row.sense_length) > (
+                    len(aso_template) - 150) and (
+                    (row.sense_start + row.sense_length) < len(aso_template) - 50):
+                region_names.append('end_inside')
+            elif (row.sense_start + row.sense_length) > (len(aso_template) - 50):
+                region_names.append('end_outside')
+            else:
+                region_names.append('middle')
+    elif experiment.name == 'Entire':
+        for row in merged_df.itertuples():
+            if row.sense_start < 100:
+                region_names.append('GFP_start')
+            elif (row.sense_start + row.sense_length) < 500:
+                region_names.append('GFP_middle')
+            elif (row.sense_start + row.sense_length) < 717:
+                region_names.append('GFP_end')
+            elif (row.sense_start + row.sense_length) < 717 + 126:
+                region_names.append('Degron')
+            elif (row.sense_start + row.sense_length) > (len(aso_template) - 132):
+                region_names.append('Terminator')
+            elif (row.sense_start + row.sense_length) > (len(aso_template) - 132 - 77):
+                region_names.append('Gap-(LTR/Term)')
+            elif (row.sense_start + row.sense_length) > (len(aso_template) - 132 - 77 - 234):
+                region_names.append('3LTR')
+            else:
+                region_names.append('Other')
+    else:
+        for _ in merged_df.itertuples():
+            region_names.append('NA')
+
+    return region_names
+
+
 def load_all_features(experiment: Experiment):
     current_experiment_results = EXPERIMENT_RESULTS / experiment.name
     antisense_results = current_experiment_results / 'antisense_results'
@@ -81,22 +131,9 @@ def load_all_features(experiment: Experiment):
         merged_df = pd.merge(merged_df, table, on=KEY_COLUMNS)
 
     print('All columns: ', merged_df.columns)
-    all_asos = []
-    region_names = []
-    for row in merged_df.itertuples():
-        i, l = row.sense_start, row.sense_length
-        all_asos.append(get_antisense(experiment.target_sequence[i:i + l]))
 
-        if row.sense_start < 100:
-            region_names.append('start')
-        elif (row.sense_start + row.sense_length) > (
-                len(experiment.target_sequence) - 150) and (
-                (row.sense_start + row.sense_length) < len(experiment.target_sequence) - 50):
-            region_names.append('end_inside')
-        elif (row.sense_start + row.sense_length) > (len(experiment.target_sequence) - 50):
-            region_names.append('end_outside')
-        else:
-            region_names.append('middle')
+    all_asos = get_explicit_antisense(merged_df, experiment)
+    region_names = mark_regions(merged_df, experiment)
 
     merged_df['antisense'] = all_asos
     merged_df['region_name'] = region_names
@@ -131,50 +168,51 @@ if __name__ == "__main__":
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1000)
 
-    experiment_names = ['Fourth']
+    experiment_names = ['EntireScrambled']
     # experiment_names = ['Second', 'ThirdDegron', 'Fourth']
     experiments = get_experiments(experiment_names)
-    combine_experiments(experiments)
+    # combine_experiments(experiments)
 
-    # for experiment in experiments:
-    #     merged_df = load_all_features(experiment)
-    #     # Per Tamir notes
-    #     merged_df = merged_df[merged_df['0_matches_human'] == 0]
-    #     merged_df = merged_df[merged_df['0_matches_yeast'] == 0]
-    #
-    #     if experiment.name == 'Second':
-    #         most_important_columns = ['sense_start', 'sense_length', 'on_target_energy_max',
-    #                                   'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
-    #                                   'total_hybridization_max_sum_yeast', 'mfe']
-    #
-    #         merged_df = merged_df.sort_values(
-    #             by=['on_target_energy_max', 'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
-    #                 'total_hybridization_max_sum_yeast', 'mfe'], ascending=[True, False, True, True, False],
-    #             inplace=False)
-    #
-    #         irrelevant_columns = ['aso_aso_delta_g', 'aso_aso_delta_h', 'aso_aso_delta_s', 'aso_aso_structure_found',
-    #                               '2_matches_human', '3_matches_human', '2_matches_yeast', '3_matches_yeast']
-    #         merged_df = merged_df.drop(irrelevant_columns, axis=1)
-    #         reordered_columns = most_important_columns + [col for col in merged_df.columns if
-    #                                                       col not in most_important_columns]
-    #         merged_df = merged_df[reordered_columns]
-    #     elif experiment.name == 'SecondScrambled':
-    #         most_important_columns = ['sense_start', 'sense_length', 'on_target_energy_max',
-    #                                   'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
-    #                                   'total_hybridization_max_sum_yeast', 'mfe']
-    #
-    #         # On scrambled we would like to miss the target, at least not aim for it
-    #         merged_df = merged_df.sort_values(
-    #             by=['on_target_energy_max', 'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
-    #                 'total_hybridization_max_sum_yeast', 'mfe'], ascending=[False, True, True, True, False],
-    #             inplace=False)
-    #
-    #         irrelevant_columns = ['aso_aso_delta_g', 'aso_aso_delta_h', 'aso_aso_delta_s', 'aso_aso_structure_found',
-    #                               '2_matches_human', '3_matches_human', '2_matches_yeast', '3_matches_yeast']
-    #         merged_df = merged_df.drop(irrelevant_columns, axis=1)
-    #         reordered_columns = most_important_columns + [col for col in merged_df.columns if
-    #                                                       col not in most_important_columns]
-    #         merged_df = merged_df[reordered_columns]
-    #
-    #     experiment_path = EXPERIMENT_RESULTS / experiment.name
-    #     merged_df.to_csv(experiment_path / f'all_features.csv', index=False)
+    for experiment in experiments:
+        merged_df = load_all_features(experiment)
+        # Per Tamir notes
+        merged_df = merged_df[merged_df['0_matches_human'] == 0]
+        merged_df = merged_df[merged_df['0_matches_yeast'] == 0]
+
+        if experiment.name == 'Second' or experiment.name == 'Entire':
+            most_important_columns = ['sense_start', 'sense_length', 'on_target_energy_max',
+                                      'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
+                                      'total_hybridization_max_sum_yeast', 'mfe']
+
+            merged_df = merged_df.sort_values(
+                by=['on_target_energy_max', 'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
+                    'total_hybridization_max_sum_yeast', 'mfe'], ascending=[True, False, True, True, False],
+                inplace=False)
+
+            irrelevant_columns = ['aso_aso_delta_g', 'aso_aso_delta_h', 'aso_aso_delta_s', 'aso_aso_structure_found',
+                                  '2_matches_human', '3_matches_human', '2_matches_yeast', '3_matches_yeast']
+            merged_df = merged_df.drop(irrelevant_columns, axis=1)
+            reordered_columns = most_important_columns + [col for col in merged_df.columns if
+                                                          col not in most_important_columns]
+            merged_df = merged_df[reordered_columns]
+
+        elif experiment.name == 'SecondScrambled':
+            most_important_columns = ['sense_start', 'sense_length', 'on_target_energy_max',
+                                      'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
+                                      'total_hybridization_max_sum_yeast', 'mfe']
+
+            # On scrambled we would like to miss the target, at least not aim for it
+            merged_df = merged_df.sort_values(
+                by=['on_target_energy_max', 'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
+                    'total_hybridization_max_sum_yeast', 'mfe'], ascending=[False, True, True, True, False],
+                inplace=False)
+
+            irrelevant_columns = ['aso_aso_delta_g', 'aso_aso_delta_h', 'aso_aso_delta_s', 'aso_aso_structure_found',
+                                  '2_matches_human', '3_matches_human', '2_matches_yeast', '3_matches_yeast']
+            merged_df = merged_df.drop(irrelevant_columns, axis=1)
+            reordered_columns = most_important_columns + [col for col in merged_df.columns if
+                                                          col not in most_important_columns]
+            merged_df = merged_df[reordered_columns]
+
+        experiment_path = EXPERIMENT_RESULTS / experiment.name
+        merged_df.to_csv(experiment_path / f'all_features.csv', index=False)
