@@ -5,6 +5,19 @@ from asodesigner.target_finder import get_gfp_first_exp
 from asodesigner.util import get_antisense
 
 
+def test_empty():
+    name_to_sequence = {"GFP": get_gfp_first_exp()}
+
+    result = get_trigger_mfe_scores_by_risearch(name_to_sequence['GFP'][0:20], name_to_sequence, minimum_score=30000,
+                                                # very high score, no candidates will be found
+                                                parsing_type='2')
+    mfe_scores = get_mfe_scores(result, '2')
+
+    assert len(mfe_scores) == 1
+    assert len(mfe_scores[0]) == 0
+
+
+
 def test_risearch():
     # example
     name_to_sequence = {

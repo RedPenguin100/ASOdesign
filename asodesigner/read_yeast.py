@@ -165,9 +165,10 @@ def get_full_locus_to_data() -> Dict[str, LocusInfo]:
 
 
 if __name__ == "__main__":
-    second_experiment = 'Second'
-    maybe_create_experiment_folders(second_experiment)
-    experiments = get_experiments([second_experiment])
+    this_experiment = 'EntireScrambled'
+    organism = 'yeast'
+    maybe_create_experiment_folders(this_experiment)
+    experiments = get_experiments([this_experiment])
 
     locus_to_data = get_full_locus_to_data()
 
@@ -176,5 +177,5 @@ if __name__ == "__main__":
         simple_locus_to_data[locus_name] = locus_info.full_mrna
 
     for experiment in experiments:
-        # run_off_target_wc_analysis(experiment, locus_to_data, simple_locus_to_data, organism='yeast')
-        run_off_target_hybridization_analysis(experiment, locus_to_data, simple_locus_to_data, organism='yeast')
+        run_off_target_wc_analysis(experiment, locus_to_data, simple_locus_to_data, organism=organism)
+        run_off_target_hybridization_analysis(experiment, locus_to_data, simple_locus_to_data, organism=organism)

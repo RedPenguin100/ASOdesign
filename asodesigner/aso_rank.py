@@ -1,3 +1,4 @@
+import math
 import pandas as pd
 from ViennaRNA import RNA
 import primer3
@@ -8,22 +9,14 @@ from fuzzysearch import find_near_matches
 from asodesigner.experiment import Experiment, get_experiments
 from asodesigner.fold import get_weighted_energy, calculate_energies, get_trigger_mfe_scores_by_risearch, get_mfe_scores
 from asodesigner.result import save_results_on_target
+from asodesigner.target_finder import iterate_template
 from asodesigner.timer import Timer
 from asodesigner.util import get_antisense
-
-from numba import njit
-
-
-@njit
-def iterate_target(target_seq, l_values):
-    for l in l_values:
-        for i in range(len(target_seq) - l + 1):
-            yield i, l, target_seq[i:i + l]
 
 
 def record_internal_fold(experiment: Experiment):
     results = []
-    for (i, l, sense) in iterate_target(experiment.target_sequence, experiment.l_values):
+    for (i, l, sense) in iterate_template(experiment.get_aso_template(), experiment.l_values):
         antisense = get_antisense(sense)
         structure, mfe = RNA.fold(antisense)
         results.append((i, l, structure, mfe))
@@ -37,7 +30,7 @@ def record_internal_fold(experiment: Experiment):
 
 def record_nucleotide_properties(experiment: Experiment):
     results = []
-    for (i, l, sense) in iterate_target(experiment.target_sequence, experiment.l_values):
+    for (i, l, sense) in iterate_template(experiment.get_aso_template(), experiment.l_values):
         antisense = get_antisense(sense)
         gc_content = gc_fraction(antisense)
         contains_GGGG = 'GGGG' in antisense
@@ -51,7 +44,7 @@ def record_nucleotide_properties(experiment: Experiment):
 
 def record_melting_temperature(experiment: Experiment):
     results = []
-    for (i, l, sense) in iterate_target(experiment.target_sequence, experiment.l_values):
+    for (i, l, sense) in iterate_template(experiment.get_aso_template(), experiment.l_values):
         antisense = get_antisense(sense)
         melting_temperature = MeltingTemp.Tm_NN(antisense)
 
@@ -65,7 +58,7 @@ def record_melting_temperature(experiment: Experiment):
 
 def record_self_dimerization_unmodified(experiment: Experiment):
     results = []
-    for (i, l, sense) in iterate_target(experiment.target_sequence, experiment.l_values):
+    for (i, l, sense) in iterate_template(experiment.get_aso_template(), experiment.l_values):
         antisense = get_antisense(sense)
         homodimer = primer3.calc_homodimer(antisense)
         results.append((i, l, homodimer.dg, homodimer.dh, homodimer.ds, homodimer.structure_found, homodimer.tm))
@@ -85,7 +78,7 @@ def record_on_target_fold(experiment: Experiment):
     energies = calculate_energies(experiment.target_sequence, step_size, window_size)
 
     results = []
-    for (i, l, sense) in iterate_target(experiment.target_sequence, experiment.l_values):
+    for (i, l, _) in iterate_template(experiment.get_aso_template(), experiment.l_values):
         mean_fold = get_weighted_energy(i, l, step_size, energies, window_size)
         results.append((i, l, mean_fold, mean_fold / l))
 
@@ -100,7 +93,7 @@ def record_on_target_energy_hybridization(experiment: Experiment):
     name_to_sequence = {'target_seq': experiment.target_sequence}
     results = []
     parsing_type = '2'
-    for (i, l, sense) in iterate_target(experiment.target_sequence, experiment.l_values):
+    for (i, l, sense) in iterate_template(experiment.get_aso_template(), experiment.l_values):
         tmp_results = get_trigger_mfe_scores_by_risearch(sense, name_to_sequence, minimum_score=1200, neighborhood=l,
                                                          parsing_type=parsing_type)
         scores = get_mfe_scores(tmp_results, parsing_type)
@@ -108,7 +101,8 @@ def record_on_target_energy_hybridization(experiment: Experiment):
             results.append((i, l, 0, 0., 0.))
         else:
             target_scores = scores[0]
-            results.append((i, l, len(target_scores), sum(target_scores), min(target_scores)))
+            min_score = 0 if len(target_scores) == 0 else min(target_scores)
+            results.append((i, l, len(target_scores), sum(target_scores), min_score))
 
     column = ['sense_start', 'sense_length', 'on_target_energy_fits', 'on_target_energy_sum', 'on_target_energy_max']
     df = pd.DataFrame(results, columns=column)
@@ -121,7 +115,7 @@ def record_on_target_wc_hybridization(experiment: Experiment):
 
     max_distance = 3
 
-    for (i, l, sense) in iterate_target(experiment.target_sequence, experiment.l_values):
+    for (i, l, sense) in iterate_template(experiment.get_aso_template(), experiment.l_values):
         matches_per_distance = [0 for i in range(max_distance + 1)]
         matches = find_near_matches(get_antisense(sense), experiment.target_sequence, max_insertions=0, max_deletions=0,
                                     max_l_dist=max_distance)
@@ -162,7 +156,7 @@ if __name__ == '__main__':
     pd.set_option('display.max_rows', None)
     pd.set_option('display.width', 1000)
 
-    experiment_names = ['Second', 'SecondScrambled']
+    experiment_names = ['EntireScrambled']
     experiments = get_experiments(experiment_names)
 
     for experiment in experiments:

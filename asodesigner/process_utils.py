@@ -8,12 +8,16 @@ import pandas as pd
 from fuzzysearch import find_near_matches
 from tqdm import tqdm
 
-from asodesigner.consts import EXPERIMENT_RESULTS
+from asodesigner.cache import load_cache_off_target_hybridization, load_cache_off_target_wc, update_loaded_data, \
+    save_cache
+from asodesigner.consts import EXPERIMENT_RESULTS, CACHE_DIR
 from asodesigner.experiment import Experiment
 from asodesigner.features import SENSE_START, SENSE_LENGTH
 from asodesigner.fold import get_trigger_mfe_scores_by_risearch, get_mfe_scores, dump_target_file, calculate_energies
 from asodesigner.result import save_results_organism
+from asodesigner.target_finder import iterate_template_antisense
 from asodesigner.timer import Timer
+from asodesigner.util import get_antisense
 
 
 class LocusInfo:
@@ -51,13 +55,12 @@ def process_fold_single_mrna(args):
 def process_hybridization(task):
     i = task.sense_start
     l = task.sense_length
-    target_seq = task.target_sequence
     locus_to_data = task.simplified_fasta_dict
     target_cache_filename = task.target_cache_filename
 
     parsing_type = task.parsing_type
 
-    scores = get_trigger_mfe_scores_by_risearch(target_seq[i: i + l], locus_to_data,
+    scores = get_trigger_mfe_scores_by_risearch(task.get_sense(), locus_to_data,
                                                 minimum_score=task.minimum_score, neighborhood=l,
                                                 parsing_type=parsing_type,
                                                 target_file_cache=target_cache_filename)
@@ -70,14 +73,20 @@ def process_hybridization(task):
     for locus_scores in energy_scores:
         total_candidates += len(locus_scores)
         energy_sum += sum(locus_scores)
-        max_sum += min(locus_scores)
-        binary_sum += 1 if min(locus_scores) < task.binary_cutoff else 0
+
+        if len(locus_scores) != 0:
+            min_score = min(locus_scores)
+        else:
+            min_score = 0
+
+        max_sum += min_score
+        binary_sum += 1 if min_score < task.binary_cutoff else 0
     return ResultHybridization(i, l, total_candidates, energy_sum, max_sum, binary_sum)
 
 
 def process_watson_crick_differences(args):
-    i, l, target_seq, locus_to_data = args
-    sense = target_seq[i:i + l]
+    i, l, aso_template, locus_to_data = args
+    sense = aso_template[i:i + l]
     matches_per_distance = [0, 0, 0, 0]
 
     for locus_tag, locus_info in locus_to_data.items():
@@ -116,35 +125,68 @@ def parallelize_function(function, tasks, max_threads=None):
     return results
 
 
+def wc_results_to_dict(results, aso_template):
+    results_dict = dict()
+    for result in results:
+        start = result[0]
+        length = result[1]
+        results_dict[get_antisense(aso_template[start:start + length])] = (result[2], result[3], result[4], result[5])
+
+    return results_dict
+
+
 def run_off_target_wc_analysis(experiment: Experiment, fasta_dict=None, simplified_fasta_dict=None, organism=None):
     validate_organism(organism)
     simplified_fasta_dict = validated_get_simplified_fasta_dict(fasta_dict, simplified_fasta_dict)
 
-    tasks = []
-    for l in experiment.l_values:
-        for i in range(len(experiment.target_sequence) - l + 1):
-            tasks.append((i, l, experiment.target_sequence, simplified_fasta_dict))
+    loaded_data, cache_path = load_cache_off_target_wc(organism)
+    aso_template = experiment.get_aso_template()
 
+    tasks = []
+    tasks_cached = 0
+    for (i, l, antisense) in iterate_template_antisense(aso_template, experiment.l_values):
+        if antisense not in loaded_data:  # no reason to calculate on cached elements
+            tasks.append((i, l, experiment.get_aso_template(), simplified_fasta_dict))
+        else:
+            tasks_cached += 1
+
+    print(f"Skipping {tasks_cached} tasks that were found in cache.")
     results = parallelize_function(process_watson_crick_differences, tasks)
 
+    results_dict = wc_results_to_dict(results, aso_template)
+    update_loaded_data(loaded_data, results_dict)
+    save_cache(cache_path, loaded_data)
+
+    full_results = []
+    for i, l, antisense in iterate_template_antisense(aso_template, experiment.l_values):
+        loaded_result = loaded_data[antisense]
+        full_results.append((i, l, loaded_result[0], loaded_result[1], loaded_result[2], loaded_result[3]))
+
     columns = [SENSE_START, SENSE_LENGTH, '0_matches', '1_matches', '2_matches', '3_matches']
-    df = pd.DataFrame(results, columns=columns)
+    df = pd.DataFrame(full_results, columns=columns)
+    df = df.sort_values(by=['sense_start', 'sense_length'])
 
     print(df)
     save_results_organism(df, organism, experiment.name, 'wc_off_targets')
 
 
 class Task:
-    def __init__(self, sense_start, sense_length, target_sequence, simplified_fasta_dict, target_cache_filename):
+    def __init__(self, sense_start, sense_length, aso_template, simplified_fasta_dict, target_cache_filename):
         self.sense_start = sense_start
         self.sense_length = sense_length
-        self.target_sequence = target_sequence
+        self.aso_template = aso_template
         self.simplified_fasta_dict = simplified_fasta_dict
         self.target_cache_filename = target_cache_filename
         # Settings. TODO: consider moving to separate class
         self.minimum_score = 900
         self.parsing_type = '2'
         self.binary_cutoff = -20
+
+    def get_sense(self):
+        return self.aso_template[self.sense_start: self.sense_start + self.sense_length]
+
+    def get_antisense(self):
+        return get_antisense(self.get_sense())
 
 
 @dataclass
@@ -155,6 +197,23 @@ class ResultHybridization:
     total_hybridization_energy: int
     total_hybridization_max_sum: int
     total_hybridization_binary_sum: int
+
+    @staticmethod
+    def results_to_result_dict(results, aso_template):
+        results_dict = dict()
+        for result in results:
+            start = result.sense_start
+            length = result.sense_length
+            total_hybridization_candidates: int
+            total_hybridization_energy: int
+            total_hybridization_max_sum: int
+            total_hybridization_binary_sum: int
+
+            results_dict[get_antisense(aso_template[start:start + length])] = (
+                result.total_hybridization_candidates, result.total_hybridization_energy,
+                result.total_hybridization_max_sum, result.total_hybridization_binary_sum)
+
+        return results_dict
 
 
 def run_off_target_hybridization_analysis(experiment: Experiment, fasta_dict=None, simplified_fasta_dict=None,
@@ -168,20 +227,39 @@ def run_off_target_hybridization_analysis(experiment: Experiment, fasta_dict=Non
     # to improve speed of process_hybridization
     target_cache_path = dump_target_file(target_cache_filename, simplified_fasta_dict)
 
+    loaded_data, cache_path = load_cache_off_target_hybridization(organism)
+    aso_template = experiment.get_aso_template()
+
     tasks = []
-    for l in experiment.l_values:
-        for i in range(len(experiment.target_sequence) - l + 1):
-            tasks.append(Task(i, l, experiment.target_sequence, simplified_fasta_dict, str(target_cache_path)))
+    tasks_cached = 0
 
-
+    for i, l, antisense in iterate_template_antisense(aso_template, experiment.l_values):
+        if not antisense in loaded_data:
+            tasks.append(Task(i, l, aso_template, simplified_fasta_dict, str(target_cache_path)))
+        else:
+            tasks_cached += 1
+    print(f"Skipping {tasks_cached} tasks that were found in cache.")
 
     results = parallelize_function(process_hybridization, tasks)
 
-    df = pd.DataFrame([asdict(result) for result in results])
+    results_dict = ResultHybridization.results_to_result_dict(results, aso_template)
+
+    update_loaded_data(loaded_data, results_dict)
+    save_cache(cache_path, loaded_data)
+
+    full_results = []
+    for i, l, antisense in iterate_template_antisense(aso_template, experiment.l_values):
+        loaded_result = loaded_data[antisense]
+        full_results.append((i, l, loaded_result[0], loaded_result[1], loaded_result[2], loaded_result[3]))
+
+    columns = ['sense_start', 'sense_length', 'total_hybridization_candidates', 'total_hybridization_energy',
+               'total_hybridization_max_sum', 'total_hybridization_binary_sum']
+    df = pd.DataFrame([result for result in full_results], columns=columns)
 
     print(df)
+    df = df.sort_values(by=['sense_start', 'sense_length'])
     save_results_organism(df, organism, experiment.name, 'hybridization_off_targets')
-    os.remove(target_cache_filename)
+    os.remove(target_cache_path)
 
 
 def run_off_target_fold_analysis(locus_to_data, experiment_name, organism):
