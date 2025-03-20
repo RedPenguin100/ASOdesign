@@ -8,7 +8,6 @@ import subprocess
 from Bio.Seq import Seq
 from typing import Dict, List
 from enum import Enum
-from numba import njit
 
 from asodesigner.consts import RISEARCH1_BINARY_PATH, TMP_PATH
 
@@ -52,7 +51,10 @@ note: play with the d and s parameters I passed here, and with other parameters 
 '''
 
 
-def parse_mfe_scores_2(result):
+def _parse_mfe_scores_2(result):
+    if not result:
+        return [[]]
+
     lines = result.split('\n')
     target_to_energies = dict()
     for line in lines:
@@ -81,7 +83,7 @@ def get_mfe_scores(result: str, parsing_type=None) -> List[List[float]]:
             mfe_results.append(
                 [float(regex_result.replace('Free energy [kcal/mol]: ', '').strip()) for regex_result in regex_results])
     elif parsing_type == '2':
-        return parse_mfe_scores_2(result)
+        return _parse_mfe_scores_2(result)
 
     return mfe_results
 

@@ -2,9 +2,25 @@ import pandas as pd
 
 from Bio import SeqIO
 from fuzzysearch import find_near_matches
+from numba import njit
 
 from asodesigner.consts import DATA_PATH
+from asodesigner.fold import get_trigger_mfe_scores_by_risearch, get_mfe_scores
 from asodesigner.util import get_antisense
+
+
+@njit
+def iterate_template(template_seq, l_values):
+    for l in l_values:
+        for i in range(len(template_seq) - l + 1):
+            yield i, l, template_seq[i:i + l]
+
+
+@njit
+def iterate_template_antisense(template_seq, l_values):
+    for l in l_values:
+        for i in range(len(template_seq) - l + 1):
+            yield i, l, get_antisense(template_seq[i:i + l])
 
 
 def get_gfp_seq_and_context():
@@ -16,7 +32,13 @@ def get_gfp_seq_and_context():
 
     with open(str(gfp_context_path), 'r') as f:
         gfp_context = f.read().upper()
+
+    gfp_start = gfp_context.find(gfp_seq)
+    if gfp_start == -1:
+        raise ValueError("Context not found!")
+
     return (gfp_seq, gfp_context)
+
 
 def get_gfp_first_exp(gap=100):
     # TODO: gap should be always 100 in this function
@@ -36,11 +58,47 @@ def get_gfp_second_exp():
     gfp_seq, gfp_context = get_gfp_seq_and_context()
 
     gfp_start = gfp_context.find(gfp_seq)
-    if gfp_start == -1:
-        raise ValueError("Context not found!")
-
     gfp_ext = gfp_context[gfp_start: gfp_start + len(gfp_seq) + right_gap]
+
     return gfp_ext
+
+
+DEGRON_LENGTH = 126
+
+
+def get_degron_and_gap_third_exp():
+    left_gap = 25
+
+    # Very specific for this sequence protein
+    gfp_seq, gfp_context = get_gfp_seq_and_context()
+    gfp_start = gfp_context.find(gfp_seq)
+    degron_first = gfp_start + len(gfp_seq)  # one after gfp end
+    degron_and_gap = gfp_context[degron_first - left_gap:degron_first + DEGRON_LENGTH]
+    return degron_and_gap
+
+
+# Includes - GFP, Degron, WPRE, 3UTR
+def get_extended_gfp():
+    gfp_seq, gfp_context = get_gfp_seq_and_context()
+    gfp_start = gfp_context.find(gfp_seq)
+    return gfp_context[gfp_start:]
+
+
+def get_degron_gfp_scrambled_third_exp():
+    gfp_seq, gfp_context = get_gfp_seq_and_context()
+    gfp_start = gfp_context.find(gfp_seq)
+    degron_end = gfp_start + len(gfp_seq) + DEGRON_LENGTH
+    return gfp_context[gfp_start:degron_end]
+
+
+def get_3utr_gfp():
+    gfp_seq, gfp_context = get_gfp_seq_and_context()
+    utr_start = 2813
+    utr_length = 234
+
+    three_utr = gfp_context[utr_start:utr_start + utr_length]
+    return three_utr
+
 
 def generate_scrambled(target_seq):
     l_values = [17, 18, 19, 20, 21]
@@ -49,25 +107,53 @@ def generate_scrambled(target_seq):
     df = pd.DataFrame(
         columns=['sense_start', 'sense_length', '0_matches', '1_matches', '2_matches', '3_matches'])
 
-    for l in l_values:
-        for i in range(len(target_seq) - l + 1):
-            sense = target_seq[i:i + l]
-            sample = get_antisense(sense)
+    for i, l, antisense in iterate_template_antisense(target_seq, l_values):
+        matches = find_near_matches(antisense, target_seq, max_insertions=0, max_deletions=0, max_l_dist=3)
+        for match in matches:
+            matches_per_distance[match.dist] += 1
 
-            matches = find_near_matches(sample, target_seq, max_insertions=0, max_deletions=0, max_l_dist=3)
-            for match in matches:
-                matches_per_distance[match.dist] += 1
+        if (i, l) not in df.index:
+            df.loc[len(df)] = [i, l, matches_per_distance[0], matches_per_distance[1], matches_per_distance[2],
+                               matches_per_distance[3]]
 
-            if (i, l) not in df.index:
-                df.loc[len(df)] = [i, l, matches_per_distance[0], matches_per_distance[1], matches_per_distance[2],
-                                   matches_per_distance[3]]
     return df
 
 
-if __name__ == '__main__':
-    df = generate_scrambled(get_gfp_first_exp())
-    print(df[df['0_matches'] != 0])
-    print(df[df['1_matches'] != 0])
-    print(df[df['2_matches'] != 0])
-    print(df[df['3_matches'] != 0])
+def generate_scrambled_permutation(target_seq: str):
+    l_values = [16, 17, 18, 19, 20, 21]
+    parsing_type = '2'
 
+    aso_to_scores = dict()
+
+    for (i, l, sense) in iterate_template(target_seq, l_values):
+        tmp_results = get_trigger_mfe_scores_by_risearch(sense, {'GFP': target_seq}, minimum_score=900,
+                                                         neighborhood=l,
+                                                         parsing_type=parsing_type)
+        scores = get_mfe_scores(tmp_results, parsing_type)
+
+        aso_to_scores[(i, l)] = sum(scores[0])
+
+    return aso_to_scores
+
+
+if __name__ == '__main__':
+    print(get_3utr_gfp())
+
+    # aso_to_scores = generate_scrambled_permutation(get_gfp_first_exp())
+    # zeros = 0
+    # non_zeros = 0
+    # print(aso_to_scores)
+    # for key, value in aso_to_scores.items():
+    #     print(value)
+    #     if value == 0:
+    #         zeros += 1
+    #     else:
+    #         non_zeros += 1
+    # print(zeros)
+    # print(non_zeros)
+
+    # df = generate_scrambled(get_gfp_first_exp())
+    # print(df[df['0_matches'] != 0])
+    # print(df[df['1_matches'] != 0])
+    # print(df[df['2_matches'] != 0])
+    # print(df[df['3_matches'] != 0])
