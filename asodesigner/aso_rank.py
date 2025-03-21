@@ -9,15 +9,13 @@ from fuzzysearch import find_near_matches
 from asodesigner.experiment import Experiment, get_experiments
 from asodesigner.fold import get_weighted_energy, calculate_energies, get_trigger_mfe_scores_by_risearch, get_mfe_scores
 from asodesigner.result import save_results_on_target
-from asodesigner.target_finder import iterate_template
 from asodesigner.timer import Timer
 from asodesigner.util import get_antisense
 
 
 def record_internal_fold(experiment: Experiment):
     results = []
-    for (i, l, sense) in iterate_template(experiment.get_aso_template(), experiment.l_values):
-        antisense = get_antisense(sense)
+    for (i, l, antisense) in experiment.get_aso_antisense_iterator():
         structure, mfe = RNA.fold(antisense)
         results.append((i, l, structure, mfe))
 
@@ -30,8 +28,7 @@ def record_internal_fold(experiment: Experiment):
 
 def record_nucleotide_properties(experiment: Experiment):
     results = []
-    for (i, l, sense) in iterate_template(experiment.get_aso_template(), experiment.l_values):
-        antisense = get_antisense(sense)
+    for (i, l, antisense) in experiment.get_aso_antisense_iterator():
         gc_content = gc_fraction(antisense)
         contains_GGGG = 'GGGG' in antisense
         results.append((i, l, gc_content, contains_GGGG))
@@ -44,8 +41,7 @@ def record_nucleotide_properties(experiment: Experiment):
 
 def record_melting_temperature(experiment: Experiment):
     results = []
-    for (i, l, sense) in iterate_template(experiment.get_aso_template(), experiment.l_values):
-        antisense = get_antisense(sense)
+    for (i, l, antisense) in experiment.get_aso_antisense_iterator():
         melting_temperature = MeltingTemp.Tm_NN(antisense)
 
         results.append((i, l, melting_temperature))
@@ -58,8 +54,7 @@ def record_melting_temperature(experiment: Experiment):
 
 def record_self_dimerization_unmodified(experiment: Experiment):
     results = []
-    for (i, l, sense) in iterate_template(experiment.get_aso_template(), experiment.l_values):
-        antisense = get_antisense(sense)
+    for (i, l, antisense) in experiment.get_aso_antisense_iterator():
         homodimer = primer3.calc_homodimer(antisense)
         results.append((i, l, homodimer.dg, homodimer.dh, homodimer.ds, homodimer.structure_found, homodimer.tm))
 
@@ -78,7 +73,7 @@ def record_on_target_fold(experiment: Experiment):
     energies = calculate_energies(experiment.target_sequence, step_size, window_size)
 
     results = []
-    for (i, l, _) in iterate_template(experiment.get_aso_template(), experiment.l_values):
+    for (i, l, _) in experiment.get_aso_sense_iterator():
         mean_fold = get_weighted_energy(i, l, step_size, energies, window_size)
         results.append((i, l, mean_fold, mean_fold / l))
 
@@ -93,7 +88,7 @@ def record_on_target_energy_hybridization(experiment: Experiment):
     name_to_sequence = {'target_seq': experiment.target_sequence}
     results = []
     parsing_type = '2'
-    for (i, l, sense) in iterate_template(experiment.get_aso_template(), experiment.l_values):
+    for (i, l, sense) in experiment.get_aso_sense_iterator():
         tmp_results = get_trigger_mfe_scores_by_risearch(sense, name_to_sequence, minimum_score=1200, neighborhood=l,
                                                          parsing_type=parsing_type)
         scores = get_mfe_scores(tmp_results, parsing_type)
@@ -115,22 +110,22 @@ def record_on_target_wc_hybridization(experiment: Experiment):
 
     max_distance = 3
 
-    for (i, l, sense) in iterate_template(experiment.get_aso_template(), experiment.l_values):
-        matches_per_distance = [0 for i in range(max_distance + 1)]
-        matches = find_near_matches(get_antisense(sense), experiment.target_sequence, max_insertions=0, max_deletions=0,
+    for (idx, l, antisense) in experiment.get_aso_antisense_iterator():
+        matches_per_distance = [0 for it in range(max_distance + 1)]
+        matches = find_near_matches(antisense, experiment.target_sequence, max_insertions=0, max_deletions=0,
                                     max_l_dist=max_distance)
         for match in matches:
             matches_per_distance[match.dist] += 1
 
-        result = [i, l]
+        result = [idx, l]
         for distance in range(max_distance + 1):
             result.append(matches_per_distance[distance])
 
         results.append(tuple(result))
 
     columns = ['sense_start', 'sense_length']
-    for i in range(max_distance + 1):
-        columns.append(f'on_matches_{i}')
+    for it in range(max_distance + 1):
+        columns.append(f'on_matches_{it}')
     df = pd.DataFrame(results, columns=columns)
     save_results_on_target(df, experiment.name, 'on_target_wc')
     return df

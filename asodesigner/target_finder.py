@@ -11,6 +11,7 @@ from asodesigner.util import get_antisense
 
 @njit
 def iterate_template(template_seq, l_values):
+    print("Hello")
     for l in l_values:
         for i in range(len(template_seq) - l + 1):
             yield i, l, template_seq[i:i + l]
@@ -18,6 +19,7 @@ def iterate_template(template_seq, l_values):
 
 @njit
 def iterate_template_antisense(template_seq, l_values):
+    print("Anti hello")
     for l in l_values:
         for i in range(len(template_seq) - l + 1):
             yield i, l, get_antisense(template_seq[i:i + l])
