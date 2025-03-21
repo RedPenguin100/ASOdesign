@@ -52,10 +52,9 @@ def get_organism_results(organism: str, columns, csv_filename):
 
 def get_explicit_antisense(merged_df, experiment):
     all_asos = []
-    aso_template = experiment.aso_template
     for row in merged_df.itertuples():
         i, l = row.sense_start, row.sense_length
-        all_asos.append(get_antisense(aso_template[i:i + l]))
+        all_asos.append(experiment.get_aso_antisense_by_index(idx=i, length=l))
     return all_asos
 
 
@@ -196,7 +195,7 @@ if __name__ == "__main__":
                                                           col not in most_important_columns]
             merged_df = merged_df[reordered_columns]
 
-        elif experiment.name == 'SecondScrambled':
+        elif experiment.name == 'SecondScrambled' or experiment.name == 'EntireScrambled':
             most_important_columns = ['sense_start', 'sense_length', 'on_target_energy_max',
                                       'on_target_fold_openness_normalized', 'total_hybridization_max_sum_human',
                                       'total_hybridization_max_sum_yeast', 'mfe']
@@ -212,6 +211,7 @@ if __name__ == "__main__":
             merged_df = merged_df.drop(irrelevant_columns, axis=1)
             reordered_columns = most_important_columns + [col for col in merged_df.columns if
                                                           col not in most_important_columns]
+
             merged_df = merged_df[reordered_columns]
 
         experiment_path = EXPERIMENT_RESULTS / experiment.name
