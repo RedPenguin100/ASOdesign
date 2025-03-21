@@ -8,6 +8,16 @@ def get_longer_string(s1: str, s2: str) -> str:
 
 
 @njit
+def get_gc_content(seq: str) -> float:
+    gc_count = 0
+    for i in range(len(seq)):
+        if seq[i] in "GCgc":
+            gc_count +=1
+
+    return gc_count / len(seq)
+
+
+@njit
 def get_nucleotide_watson_crick(nucleotide: chr) -> chr:
     if nucleotide == 'A':
         return 'T'

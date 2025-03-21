@@ -85,19 +85,18 @@ def process_hybridization(task):
 
 
 def process_watson_crick_differences(args):
-    i, l, aso_template, locus_to_data = args
-    sense = aso_template[i:i + l]
+    idx, l, aso_sense, locus_to_data = args
     matches_per_distance = [0, 0, 0, 0]
 
     for locus_tag, locus_info in locus_to_data.items():
-        matches = find_near_matches(sense, locus_info, max_insertions=0, max_deletions=0, max_l_dist=3)
+        matches = find_near_matches(aso_sense, locus_info, max_insertions=0, max_deletions=0, max_l_dist=3)
         for match in matches:
             matches_per_distance[match.dist] += 1
             if match.dist == 0:
                 print(locus_tag)
 
     # Return a tuple containing the starting index, current l, and match counts
-    return (i, l, matches_per_distance[0],
+    return (idx, l, matches_per_distance[0],
             matches_per_distance[1], matches_per_distance[2], matches_per_distance[3])
 
 
@@ -125,12 +124,13 @@ def parallelize_function(function, tasks, max_threads=None):
     return results
 
 
-def wc_results_to_dict(results, aso_template):
+def wc_results_to_dict(results, experiment):
     results_dict = dict()
     for result in results:
         start = result[0]
         length = result[1]
-        results_dict[get_antisense(aso_template[start:start + length])] = (result[2], result[3], result[4], result[5])
+        results_dict[experiment.get_aso_antisense_by_index(idx=start, length=length)] = (
+            result[2], result[3], result[4], result[5])
 
     return results_dict
 
@@ -140,27 +140,26 @@ def run_off_target_wc_analysis(experiment: Experiment, fasta_dict=None, simplifi
     simplified_fasta_dict = validated_get_simplified_fasta_dict(fasta_dict, simplified_fasta_dict)
 
     loaded_data, cache_path = load_cache_off_target_wc(organism)
-    aso_template = experiment.get_aso_template()
 
     tasks = []
     tasks_cached = 0
-    for (i, l, antisense) in iterate_template_antisense(aso_template, experiment.l_values):
-        if antisense not in loaded_data:  # no reason to calculate on cached elements
-            tasks.append((i, l, experiment.get_aso_template(), simplified_fasta_dict))
+    for (idx, l, sense) in experiment.get_aso_sense_iterator():
+        if get_antisense(sense) not in loaded_data:  # no reason to calculate on cached elements
+            tasks.append((idx, l, sense, simplified_fasta_dict))
         else:
             tasks_cached += 1
 
     print(f"Skipping {tasks_cached} tasks that were found in cache.")
     results = parallelize_function(process_watson_crick_differences, tasks)
 
-    results_dict = wc_results_to_dict(results, aso_template)
+    results_dict = wc_results_to_dict(results, experiment)
     update_loaded_data(loaded_data, results_dict)
     save_cache(cache_path, loaded_data)
 
     full_results = []
-    for i, l, antisense in iterate_template_antisense(aso_template, experiment.l_values):
+    for idx, l, antisense in experiment.get_aso_antisense_iterator():
         loaded_result = loaded_data[antisense]
-        full_results.append((i, l, loaded_result[0], loaded_result[1], loaded_result[2], loaded_result[3]))
+        full_results.append((idx, l, loaded_result[0], loaded_result[1], loaded_result[2], loaded_result[3]))
 
     columns = [SENSE_START, SENSE_LENGTH, '0_matches', '1_matches', '2_matches', '3_matches']
     df = pd.DataFrame(full_results, columns=columns)
@@ -171,10 +170,10 @@ def run_off_target_wc_analysis(experiment: Experiment, fasta_dict=None, simplifi
 
 
 class Task:
-    def __init__(self, sense_start, sense_length, aso_template, simplified_fasta_dict, target_cache_filename):
+    def __init__(self, sense_start, sense_length, sense, simplified_fasta_dict, target_cache_filename):
         self.sense_start = sense_start
         self.sense_length = sense_length
-        self.aso_template = aso_template
+        self.sense = sense
         self.simplified_fasta_dict = simplified_fasta_dict
         self.target_cache_filename = target_cache_filename
         # Settings. TODO: consider moving to separate class
@@ -183,7 +182,7 @@ class Task:
         self.binary_cutoff = -20
 
     def get_sense(self):
-        return self.aso_template[self.sense_start: self.sense_start + self.sense_length]
+        return self.sense
 
     def get_antisense(self):
         return get_antisense(self.get_sense())
@@ -199,7 +198,7 @@ class ResultHybridization:
     total_hybridization_binary_sum: int
 
     @staticmethod
-    def results_to_result_dict(results, aso_template):
+    def results_to_result_dict(results, experiment):
         results_dict = dict()
         for result in results:
             start = result.sense_start
@@ -209,7 +208,8 @@ class ResultHybridization:
             total_hybridization_max_sum: int
             total_hybridization_binary_sum: int
 
-            results_dict[get_antisense(aso_template[start:start + length])] = (
+            antisense = experiment.get_aso_antisense_by_index(idx=start, length=length)
+            results_dict[antisense] = (
                 result.total_hybridization_candidates, result.total_hybridization_energy,
                 result.total_hybridization_max_sum, result.total_hybridization_binary_sum)
 
@@ -228,27 +228,27 @@ def run_off_target_hybridization_analysis(experiment: Experiment, fasta_dict=Non
     target_cache_path = dump_target_file(target_cache_filename, simplified_fasta_dict)
 
     loaded_data, cache_path = load_cache_off_target_hybridization(organism)
-    aso_template = experiment.get_aso_template()
 
     tasks = []
     tasks_cached = 0
 
-    for i, l, antisense in iterate_template_antisense(aso_template, experiment.l_values):
+    for i, l, sense in experiment.get_aso_sense_iterator():
+        antisense = get_antisense(sense)
         if not antisense in loaded_data:
-            tasks.append(Task(i, l, aso_template, simplified_fasta_dict, str(target_cache_path)))
+            tasks.append(Task(i, l, sense, simplified_fasta_dict, str(target_cache_path)))
         else:
             tasks_cached += 1
     print(f"Skipping {tasks_cached} tasks that were found in cache.")
 
     results = parallelize_function(process_hybridization, tasks)
 
-    results_dict = ResultHybridization.results_to_result_dict(results, aso_template)
+    results_dict = ResultHybridization.results_to_result_dict(results, experiment)
 
     update_loaded_data(loaded_data, results_dict)
     save_cache(cache_path, loaded_data)
 
     full_results = []
-    for i, l, antisense in iterate_template_antisense(aso_template, experiment.l_values):
+    for i, l, antisense in experiment.get_aso_antisense_iterator():
         loaded_result = loaded_data[antisense]
         full_results.append((i, l, loaded_result[0], loaded_result[1], loaded_result[2], loaded_result[3]))
 
