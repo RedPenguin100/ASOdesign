@@ -116,6 +116,10 @@ def _get_experiments_dict() -> Dict[str, Experiment]:
     entire.l_values = DEFAULT_LENGTHS_UNMODIFIED
     name_to_experiment[entire.name] = entire
 
+    # NOTE: I accidentally generated the populated sense values with antisense values.
+    # everything is ok for the experiment, but the fold property does not necessarily hold, and
+    # needs to be verified when picking values.
+    # future versions need to use `[get_antisense(sense) for sense in generate_random_dna(...)]`
     entire_scrambled = Experiment()
     entire_scrambled.target_sequence = get_extended_gfp()
     entire_scrambled.name = 'EntireScrambled'
