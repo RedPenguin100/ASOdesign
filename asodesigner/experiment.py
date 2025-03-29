@@ -2,13 +2,20 @@ import math
 import random
 from typing import List, Dict
 
-from numba import njit
+import pandas as pd
 
 from asodesigner.consts import EXPERIMENT_RESULTS
 from asodesigner.random_util import generate_random_dna
 from asodesigner.target_finder import get_gfp_second_exp, get_degron_and_gap_third_exp, \
-    get_degron_gfp_scrambled_third_exp, get_3utr_gfp, get_extended_gfp, iterate_template, iterate_template_antisense
+    get_degron_gfp_scrambled_third_exp, get_3utr_gfp, get_extended_gfp, iterate_template, iterate_template_antisense, \
+    get_angtpl2
 from asodesigner.util import get_antisense
+from consts import DATA_PATH
+
+
+class ExperimentSetting:
+    TEMPLATE = "TEMPLATE"
+    GENERATED = "GENERATED"
 
 
 class ExperimentSetting:
@@ -131,6 +138,29 @@ def _get_experiments_dict() -> Dict[str, Experiment]:
     for l in entire_scrambled.l_values:
         entire_scrambled.generated_list.extend(generate_random_dna(l, attempts=400))
     name_to_experiment[entire_scrambled.name] = entire_scrambled
+
+    angptl2_exp = Experiment()
+    angptl2_exp.target_sequence = get_angtpl2()
+    angptl2_exp.name = 'Angptl2'
+    angptl2_exp.setting = ExperimentSetting.GENERATED
+    angptl2_exp.l_values = DEFAULT_LENGTHS_UNMODIFIED  # TODO: remove this
+    angptl2_exp.generated_list = [get_antisense(sense) for sense in
+                                  list(pd.read_csv(DATA_PATH / 'ANGPTL2_antisense.csv')['Sequence'])]
+    name_to_experiment[angptl2_exp.name] = angptl2_exp
+
+    positive_control = Experiment()
+    positive_control.target_sequence = get_extended_gfp()
+    positive_control.name = 'EntirePositiveControl'
+    positive_control.setting = ExperimentSetting.GENERATED
+    positive_control.l_values = DEFAULT_LENGTHS_UNMODIFIED  # TODO: remove this
+
+    positive_control.generated_list = [
+        # Fix for ASO5 in this article https://ars.els-cdn.com/content/image/1-s2.0-S2162253120300536-mmc1.pdf
+        get_antisense('TTGCCGGTGGTGCAGATGAA'),
+        # Original ASO5
+        get_antisense('TTGCCGGTGGTGCAGATAAA')]
+
+    name_to_experiment[positive_control.name] = positive_control
 
     return name_to_experiment
 

@@ -6,7 +6,7 @@ import primer3
 from Bio.SeqUtils import gc_fraction, MeltingTemp
 from fuzzysearch import find_near_matches
 
-from asodesigner.experiment import Experiment, get_experiments
+from asodesigner.experiment import Experiment, get_experiments, maybe_create_experiment_folders
 from asodesigner.fold import get_weighted_energy, calculate_energies, get_trigger_mfe_scores_by_risearch, get_mfe_scores
 from asodesigner.result import save_results_on_target
 from asodesigner.timer import Timer
@@ -151,10 +151,13 @@ if __name__ == '__main__':
     pd.set_option('display.max_rows', None)
     pd.set_option('display.width', 1000)
 
-    experiment_names = ['EntireScrambled']
+
+    experiment_names = ['EntirePositiveControl']
     experiments = get_experiments(experiment_names)
 
     for experiment in experiments:
+        maybe_create_experiment_folders(experiment.name)
+
         print("Target length: ", len(experiment.target_sequence))
 
         with Timer() as t:
