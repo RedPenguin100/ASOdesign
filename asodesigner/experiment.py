@@ -3,7 +3,6 @@ import random
 from typing import List, Dict
 
 import pandas as pd
-from numba import njit
 
 from asodesigner.consts import EXPERIMENT_RESULTS
 from asodesigner.random_util import generate_random_dna
@@ -12,6 +11,11 @@ from asodesigner.target_finder import get_gfp_second_exp, get_degron_and_gap_thi
     get_angtpl2
 from asodesigner.util import get_antisense
 from consts import DATA_PATH
+
+
+class ExperimentSetting:
+    TEMPLATE = "TEMPLATE"
+    GENERATED = "GENERATED"
 
 
 class ExperimentSetting:
