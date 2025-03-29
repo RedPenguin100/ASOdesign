@@ -16,12 +16,6 @@ class ExperimentSetting:
     TEMPLATE = "TEMPLATE"
     GENERATED = "GENERATED"
 
-
-class ExperimentSetting:
-    TEMPLATE = "TEMPLATE"
-    GENERATED = "GENERATED"
-
-
 class Experiment:
     def __init__(self):
         self.name = None
