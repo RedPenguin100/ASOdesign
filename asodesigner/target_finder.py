@@ -102,6 +102,11 @@ def get_3utr_gfp():
     return three_utr
 
 
+def get_angtpl2():
+    with open(DATA_PATH / 'ANGPTL2_pre_mrna.txt', 'r') as file:
+        return file.read()
+
+
 def generate_scrambled(target_seq):
     l_values = [17, 18, 19, 20, 21]
 

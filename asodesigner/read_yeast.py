@@ -166,7 +166,7 @@ def get_full_locus_to_data() -> Dict[str, LocusInfo]:
 
 if __name__ == "__main__":
     # this_experiment = 'EntireScrambled'
-    this_experiment = 'EntireScrambled'
+    this_experiment = 'EntirePositiveControl'
     organism = 'yeast'
     maybe_create_experiment_folders(this_experiment)
     experiments = get_experiments([this_experiment])
