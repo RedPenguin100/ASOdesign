@@ -167,7 +167,7 @@ if __name__ == "__main__":
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1000)
 
-    experiment_names = ['EntireScrambled']
+    experiment_names = ['EntirePositiveControl']
     # experiment_names = ['Second', 'ThirdDegron', 'Fourth']
     experiments = get_experiments(experiment_names)
     # combine_experiments(experiments)
@@ -175,8 +175,8 @@ if __name__ == "__main__":
     for experiment in experiments:
         merged_df = load_all_features(experiment)
         # Per Tamir notes
-        merged_df = merged_df[merged_df['0_matches_human'] == 0]
-        merged_df = merged_df[merged_df['0_matches_yeast'] == 0]
+        # merged_df = merged_df[merged_df['0_matches_human'] == 0]
+        # merged_df = merged_df[merged_df['0_matches_yeast'] == 0]
 
         if experiment.name == 'Second' or experiment.name == 'Entire':
             most_important_columns = ['sense_start', 'sense_length', 'on_target_energy_max',
