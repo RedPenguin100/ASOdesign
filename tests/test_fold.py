@@ -25,11 +25,13 @@ def test_risearch():
         "1": "AUGUUCGAACAACGCGUAAAUUCUGACGUACUGACCGUUUCUACCGUUAACUCUCAGGAUCAGGUAACCCAAAAACCCCUGCGUGACUCGGUUAAACAGGCACUGAAGAACUAUUUUGCUCAACUGAAUGGUCAGGAUGUGAAUGACCUCUAUGAGCUGGUACUGGCUGAAGUAGAACAGCCCCUGUUGGACAUGGUGAUGCAAUACACCCGUGGUAACCAGACCCGUGCUGCGCUGAUGAUGGGCAUCAACCGUGGUACGCUGCGUAAAAAAUUGAAAAAAUACGGCAUGAACUAA"
     }
 
+    parsing_type=None
+
     target_path = dump_target_file('target-cache.fa', name_to_sequence)
     result = get_trigger_mfe_scores_by_risearch("UAGAUGCGCCACUUGUGGUAUUCCCGCAUC", name_to_sequence, minimum_score=900,
-                                                parsing_type='2', target_file_cache=str(target_path))
+                                                parsing_type=parsing_type, target_file_cache=str(target_path))
     print(result)
-    mfe_scores = get_mfe_scores(result, '2')
+    mfe_scores = get_mfe_scores(result, parsing_type)
 
     print(mfe_scores)
 
