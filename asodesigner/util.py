@@ -245,7 +245,7 @@ def get_nucleotide_watson_crick(nucleotide):
         return 'G'
     if nucleotide == 'U' or nucleotide == 'T':
         return 'A'
-    raise ValueError(f"Unknown codon {nucleotide}")
+    raise ValueError(f"Unknown nucleotide {nucleotide}")
 
 
 @njit
