@@ -28,7 +28,9 @@ class LocusInfo:
         self.three_prime_utr = ""
         self.exon_concat = None
         self.full_mrna = None
-
+        self.cds_start = None
+        self.cds_end = None
+        self.strand = None
 
 def get_simplified_fasta_dict(fasta_dict):
     simplified_fasta_dict = dict()
