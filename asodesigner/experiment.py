@@ -4,24 +4,17 @@ from typing import List, Dict
 
 import pandas as pd
 
-from asodesigner.consts import EXPERIMENT_RESULTS
+from asodesigner.consts import EXPERIMENT_RESULTS, DATA_PATH
 from asodesigner.random_util import generate_random_dna
 from asodesigner.target_finder import get_gfp_second_exp, get_degron_and_gap_third_exp, \
     get_degron_gfp_scrambled_third_exp, get_3utr_gfp, get_extended_gfp, iterate_template, iterate_template_antisense, \
     get_angtpl2, get_bcl2_patent
 from asodesigner.util import get_antisense
-from consts import DATA_PATH
 
 
 class ExperimentSetting:
     TEMPLATE = "TEMPLATE"
     GENERATED = "GENERATED"
-
-
-class ExperimentSetting:
-    TEMPLATE = "TEMPLATE"
-    GENERATED = "GENERATED"
-
 
 class Experiment:
     def __init__(self):
