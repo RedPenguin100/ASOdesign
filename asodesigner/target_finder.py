@@ -106,6 +106,10 @@ def get_angtpl2():
     with open(DATA_PATH / 'ANGPTL2_pre_mrna.txt', 'r') as file:
         return file.read()
 
+def get_bcl2_patent():
+    with open(DATA_PATH / 'BCL2_human_premrna.txt', 'r') as file:
+        return file.read()
+
 
 def generate_scrambled(target_seq):
     l_values = [17, 18, 19, 20, 21]
