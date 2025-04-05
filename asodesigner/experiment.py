@@ -8,7 +8,7 @@ from asodesigner.consts import EXPERIMENT_RESULTS, DATA_PATH
 from asodesigner.random_util import generate_random_dna
 from asodesigner.target_finder import get_gfp_second_exp, get_degron_and_gap_third_exp, \
     get_degron_gfp_scrambled_third_exp, get_3utr_gfp, get_extended_gfp, iterate_template, iterate_template_antisense, \
-    get_angtpl2
+    get_angtpl2, get_bcl2_patent
 from asodesigner.util import get_antisense
 
 
@@ -154,6 +154,17 @@ def _get_experiments_dict() -> Dict[str, Experiment]:
         get_antisense('TTGCCGGTGGTGCAGATAAA')]
 
     name_to_experiment[positive_control.name] = positive_control
+
+
+    bcl2_patent_exp = Experiment()
+    bcl2_patent_exp.target_sequence = get_bcl2_patent()
+    bcl2_patent_exp.name = 'BCL2Patent'
+    bcl2_patent_exp.setting = ExperimentSetting.GENERATED
+    bcl2_patent_exp.l_values = DEFAULT_LENGTHS_UNMODIFIED # TODO: remove this
+    bcl2_patent_exp.generated_list = [get_antisense(sense) for sense in list(pd.read_csv(DATA_PATH / 'experiments_bcl2.csv')['Sequence'])]
+    name_to_experiment[bcl2_patent_exp.name] = bcl2_patent_exp
+
+
 
     return name_to_experiment
 

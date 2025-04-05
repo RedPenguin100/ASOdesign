@@ -52,9 +52,9 @@ def get_locus_to_data_dict(create_db=False, include_introns=False):
     locus_to_strand = dict()
 
     if include_introns:
-        feature_types = ('exon', 'intron')
+        feature_types = ('exon', 'intron', 'gene')
     else:
-        feature_types = ('exon')
+        feature_types = ('exon', 'gene')
 
 
     for feature in db.features_of_type(feature_types, order_by='start'):
@@ -100,6 +100,36 @@ def get_locus_to_data_dict(create_db=False, include_introns=False):
                 locus_to_strand[locus_tag] = intron.strand
             else:
                 bisect.insort(locus_to_data[locus_tag].introns, (intron.start, seq))
+
+        elif feature.featuretype == 'gene':
+            seq = fasta_dict[chrom].seq[feature.start - 1: feature.end]
+
+            if feature.strand == '-':
+                seq = seq.reverse_complement()
+            seq = seq.upper()
+
+            intron = feature
+
+            if locus_tag not in locus_to_data:
+                locus_info = LocusInfo()
+                locus_info.introns = []
+                locus_info.exons = []
+                locus_info.cds_start = feature.start - 1
+                locus_info.cds_end = feature.end
+                locus_info.full_mrna = seq
+                locus_info.strand = feature.strand
+                locus_to_strand[locus_tag] = feature.strand
+
+                locus_to_data[locus_tag] = locus_info
+
+            else:
+                locus_to_data[locus_tag].strand = feature.strand
+                locus_to_data[locus_tag].cds_start = feature.start - 1
+                locus_to_data[locus_tag].cds_end = feature.end
+                locus_to_data[locus_tag].full_mrna = seq
+
+
+
         elif feature.featuretype == 'UTR':
             pass
         else:
@@ -124,6 +154,7 @@ if __name__ == '__main__':
     with Timer() as t:
         gene_to_data = get_locus_to_data_dict(include_introns=True)
     print(f"Time to read full human: {t.elapsed_time}s")
+
 
     with Timer() as t:
         i = 0
