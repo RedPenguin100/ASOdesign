@@ -13,7 +13,7 @@ Steps:
 3. Install miniconda
 4. Create miniconda environment
 5. Install dependencies using the miniconda environment `conda env create -f environment.yml`. This is not super quick but it does the job
-6. Activate the environment: `conda activatae aso_design`
+6. Activate the environment: `conda activate aso_design`
 7. "Install" the `asodesigner` package as `conda develop .`
 8. Run `pytest` from the project root. If it works, then the setup is done!
 
