@@ -16,6 +16,20 @@ def get_gc_content(seq: str) -> float:
 
     return gc_count / len(seq)
 
+@njit
+def get_purine_content(seq: str) -> float:
+    """
+    Purines are the A,G bases.
+    """
+    purine_count = 0
+    for i in range(len(seq)):
+        if seq[i] in "AaGg":
+            purine_count +=1
+
+    return purine_count / len(seq)
+
+
+
 
 @njit
 def get_nucleotide_watson_crick(nucleotide: chr) -> chr:

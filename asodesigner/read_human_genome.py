@@ -108,8 +108,6 @@ def get_locus_to_data_dict(create_db=False, include_introns=False):
                 seq = seq.reverse_complement()
             seq = seq.upper()
 
-            intron = feature
-
             if locus_tag not in locus_to_data:
                 locus_info = LocusInfo()
                 locus_info.introns = []
