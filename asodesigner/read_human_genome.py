@@ -52,9 +52,9 @@ def get_locus_to_data_dict(create_db=False, include_introns=False):
     locus_to_strand = dict()
 
     if include_introns:
-        feature_types = ('exon', 'intron')
+        feature_types = ('exon', 'intron', 'gene')
     else:
-        feature_types = ('exon')
+        feature_types = ('exon', 'gene')
 
 
     for feature in db.features_of_type(feature_types, order_by='start'):
