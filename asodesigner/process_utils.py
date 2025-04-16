@@ -24,6 +24,8 @@ class LocusInfo:
     def __init__(self):
         self.exons = []
         self.introns = []
+        self.exon_indices = []
+        self.intron_indices = []
         self.five_prime_utr = ""
         self.three_prime_utr = ""
         self.exon_concat = None
