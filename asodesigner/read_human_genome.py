@@ -15,6 +15,7 @@ def cond_print(text, verbose=False):
     if verbose:
         print(text)
 
+
 def create_human_genome_db(path: Path, create_introns=False):
     print("Creating human genome database. WARNING - this is slow!")
     with Timer() as t:
@@ -44,18 +45,18 @@ def get_human_genome_annotation_db(create_db=False):
     return db
 
 
-def get_locus_to_data_dict(create_db=False, include_introns=False):
+def get_locus_to_data_dict(create_db=False, include_introns=False, gene_subset=None):
     db = get_human_genome_annotation_db(create_db)
     fasta_dict = read_human_genome_fasta_dict()
+    print("Length: ", len(fasta_dict))
 
     locus_to_data = dict()
     locus_to_strand = dict()
 
     if include_introns:
-        feature_types = ('exon', 'intron')
+        feature_types = ('exon', 'intron', 'gene')
     else:
-        feature_types = ('exon')
-
+        feature_types = ('exon', 'gene')
 
     for feature in db.features_of_type(feature_types, order_by='start'):
         chrom = feature.seqid
@@ -66,45 +67,52 @@ def get_locus_to_data_dict(create_db=False, include_introns=False):
             raise ValueError(f"Multiple loci: {locus_tags}")
         locus_tag = locus_tags[0]
 
+        if gene_subset is not None:
+            if locus_tag not in gene_subset:
+                continue
+
         if feature.featuretype == 'exon':
-            cds = feature
-            seq = fasta_dict[chrom].seq[cds.start - 1: cds.end]
-            if cds.strand == '-':
+            exon = feature
+            seq = fasta_dict[chrom].seq[exon.start - 1: exon.end]
+            if exon.strand == '-':
                 seq = seq.reverse_complement()
             seq = seq.upper()
 
             if locus_tag not in locus_to_data:
                 locus_info = LocusInfo()
-                locus_info.exons = [(cds.start, seq)]
+                locus_info.exons = [(exon.start - 1, seq)]
+                locus_info.exon_indices = [(exon.start - 1, exon.end)]
                 locus_info.introns = []
                 locus_to_data[locus_tag] = locus_info
-
-                locus_to_strand[locus_tag] = cds.strand
+                locus_to_strand[locus_tag] = exon.strand
             else:
-                bisect.insort(locus_to_data[locus_tag].exons, (cds.start, seq))
+                bisect.insort(locus_to_data[locus_tag].exons, (exon.start - 1, seq))
+                bisect.insort(locus_to_data[locus_tag].exon_indices, (exon.start - 1, exon.end))
         elif feature.featuretype == 'intron' and include_introns:
-            seq = fasta_dict[chrom].seq[feature.start - 1: feature.end]
+            intron = feature
+            seq = fasta_dict[chrom].seq[intron.start - 1: intron.end]
 
-            if feature.strand == '-':
+            if intron.strand == '-':
                 seq = seq.reverse_complement()
             seq = seq.upper()
 
-            intron = feature
-
             if locus_tag not in locus_to_data:
                 locus_info = LocusInfo()
-                locus_info.introns = [(feature.start, seq)]
+                locus_info.introns = [(intron.start - 1, intron.end, seq)]
+                locus_info.intron_indices = [(intron.start -1, intron.end)]
                 locus_info.exons = []
                 locus_to_data[locus_tag] = locus_info
 
                 locus_to_strand[locus_tag] = intron.strand
             else:
-                bisect.insort(locus_to_data[locus_tag].introns, (intron.start, seq))
+                bisect.insort(locus_to_data[locus_tag].introns, (intron.start - 1, seq))
+                bisect.insort(locus_to_data[locus_tag].intron_indices, (intron.start - 1, intron.end))
 
         elif feature.featuretype == 'gene':
-            seq = fasta_dict[chrom].seq[feature.start - 1: feature.end]
+            gene = feature
+            seq = fasta_dict[chrom].seq[gene.start - 1: gene.end]
 
-            if feature.strand == '-':
+            if gene.strand == '-':
                 seq = seq.reverse_complement()
             seq = seq.upper()
 
@@ -112,18 +120,18 @@ def get_locus_to_data_dict(create_db=False, include_introns=False):
                 locus_info = LocusInfo()
                 locus_info.introns = []
                 locus_info.exons = []
-                locus_info.cds_start = feature.start - 1
-                locus_info.cds_end = feature.end
+                locus_info.cds_start = gene.start - 1
+                locus_info.cds_end = gene.end
                 locus_info.full_mrna = seq
-                locus_info.strand = feature.strand
-                locus_to_strand[locus_tag] = feature.strand
+                locus_info.strand = gene.strand
+                locus_to_strand[locus_tag] = gene.strand
 
                 locus_to_data[locus_tag] = locus_info
 
             else:
-                locus_to_data[locus_tag].strand = feature.strand
-                locus_to_data[locus_tag].cds_start = feature.start - 1
-                locus_to_data[locus_tag].cds_end = feature.end
+                locus_to_data[locus_tag].strand = gene.strand
+                locus_to_data[locus_tag].cds_start = gene.start - 1
+                locus_to_data[locus_tag].cds_end = gene.end
                 locus_to_data[locus_tag].full_mrna = seq
 
 
@@ -132,7 +140,6 @@ def get_locus_to_data_dict(create_db=False, include_introns=False):
             pass
         else:
             print("Feature type: ", feature.featuretype)
-
 
     for locus_tag in locus_to_data:
         locus_info = locus_to_data[locus_tag]
