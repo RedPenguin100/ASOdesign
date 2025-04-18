@@ -1,7 +1,7 @@
-import read_human_genome
 import pytest
 import pickle
 
+import asodesigner.read_human_genome
 from asodesigner.consts import CACHE_DIR
 from asodesigner.timer import Timer
 from asodesigner.read_yeast import get_locus_to_data_dict_alternative, get_locus_to_data_dict
