@@ -97,7 +97,7 @@ def get_locus_to_data_dict_alternative(create_introns=False):
     return locus_to_data
 
 
-def get_locus_to_data_dict():
+def get_locus_to_data_dict_yeast():
     locus_to_data = dict()
 
     with Timer() as t:
