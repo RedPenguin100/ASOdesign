@@ -1,16 +1,16 @@
 import pytest
 import pickle
 
-import asodesigner.read_human_genome
 from asodesigner.consts import CACHE_DIR
 from asodesigner.timer import Timer
-from asodesigner.read_yeast import get_locus_to_data_dict_alternative, get_locus_to_data_dict
+from asodesigner.read_yeast import get_locus_to_data_dict_alternative, get_locus_to_data_dict_yeast
+from asodesigner.read_human_genome import get_locus_to_data_dict
 
 
 @pytest.mark.slow
 def test_locus():
     with Timer() as t:
-        locus_to_data = get_locus_to_data_dict()
+        locus_to_data = get_locus_to_data_dict_yeast()
     print(f"Regular Took: {t.elapsed_time}s")
 
     with Timer() as t:
@@ -42,7 +42,7 @@ def test_intron_regression():
 
 @pytest.mark.slow
 def test_begin_regression_human():
-    locus_to_data = read_human_genome.get_locus_to_data_dict(gene_subset=['KLKB1'])
+    locus_to_data = get_locus_to_data_dict(gene_subset=['KLKB1'])
 
     first_exon_begin = locus_to_data['KLKB1'].exons[0][0:33]
 
