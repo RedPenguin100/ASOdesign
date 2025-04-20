@@ -12,7 +12,7 @@ from asodesigner.cache import load_cache_off_target_hybridization, load_cache_of
     save_cache
 from asodesigner.consts import EXPERIMENT_RESULTS, CACHE_DIR
 from asodesigner.experiment import Experiment
-from asodesigner.features import SENSE_START, SENSE_LENGTH
+from asodesigner.features.feature_names import SENSE_START, SENSE_LENGTH
 from asodesigner.fold import get_trigger_mfe_scores_by_risearch, get_mfe_scores, dump_target_file, calculate_energies
 from asodesigner.result import save_results_organism
 from asodesigner.target_finder import iterate_template_antisense
