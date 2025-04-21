@@ -1,0 +1,23 @@
+Target_gene,Canonical Gene Name,Notes
+K-RAS,KRAS,
+negative_control,negative_control,
+SNCA,SNCA,
+IRF5,IRF5,
+MALAT1,MALAT1,
+IRF4,IRF4,
+HBV,HBV,
+Yap1,YAP1,
+PKK,KLKB1,"original name can indicates 2 different genes, was checked using the ASOs sequences"
+HSD17B13,HSD17B13,
+HIF1A,HIF1A,
+SNCA_LNA,SNCA,
+ANGPTL2_LNA,ANGPTL2,
+Tau,MAPT,"original name can indicates 2 different genes, was checked using the ASOs sequences"
+SNHG14,SNHG14,
+UBE3A,UBE3A,
+SNORD115,HBII-52,SNORD115 (also known as HBII-52) is a non-coding RNA
+HTRA1,HTRA1,
+MYH7,MYH7,
+SOD-1,SOD1,
+DGAT2,DGAT2,
+APOL1,APOL1,

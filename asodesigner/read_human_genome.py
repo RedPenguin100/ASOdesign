@@ -52,9 +52,9 @@ def get_locus_to_data_dict(create_db=False, include_introns=False):
     locus_to_strand = dict()
 
     if include_introns:
-        feature_types = ('exon', 'intron', 'gene')
+        feature_types = ('exon', 'intron')
     else:
-        feature_types = ('exon', 'gene')
+        feature_types = ('exon')
 
 
     for feature in db.features_of_type(feature_types, order_by='start'):
@@ -108,8 +108,6 @@ def get_locus_to_data_dict(create_db=False, include_introns=False):
                 seq = seq.reverse_complement()
             seq = seq.upper()
 
-            intron = feature
-
             if locus_tag not in locus_to_data:
                 locus_info = LocusInfo()
                 locus_info.introns = []
@@ -154,7 +152,6 @@ if __name__ == '__main__':
     with Timer() as t:
         gene_to_data = get_locus_to_data_dict(include_introns=True)
     print(f"Time to read full human: {t.elapsed_time}s")
-
 
     with Timer() as t:
         i = 0
