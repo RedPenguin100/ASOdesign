@@ -189,3 +189,13 @@ data/human/**/*.db
 tmp/
 
 cache/**/*.Identifier
+
+#local_files Din
+
+data/data_from_article_fixed.csv
+data/experiments_with_smiles.csv
+data/gencode.v34.pc_transcripts.fa.gz
+data/gencode.v34.transcripts.fa.gz
+data/human/human_v34/gencode.v34.basic.annotation.gtf
+scripts/play_with_data_2.ipynb
+scripts/utils_debug.py
