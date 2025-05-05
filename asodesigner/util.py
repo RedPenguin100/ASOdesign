@@ -19,15 +19,18 @@ def get_gc_content(seq: str) -> float:
 @njit
 def get_purine_content(seq: str) -> float:
     """
-    Purines are the A,G bases.
+    Calculates the fraction of purine bases (A and G) in the sequence.
+    Purine-rich sequences may be more stable and bind better to RNA targets.
     """
+    if len(seq) == 0:
+        return 0.
+
     purine_count = 0
     for i in range(len(seq)):
         if seq[i] in "AaGg":
             purine_count +=1
 
     return purine_count / len(seq)
-
 
 
 
