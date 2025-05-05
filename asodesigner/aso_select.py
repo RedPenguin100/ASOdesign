@@ -3,7 +3,7 @@ import math
 
 from asodesigner.consts import EXPERIMENT_RESULTS
 from asodesigner.experiment import get_experiments, Experiment
-from asodesigner.features import SENSE_LENGTH, SENSE_START
+from asodesigner.features.feature_names import SENSE_LENGTH, SENSE_START
 from asodesigner.util import get_antisense
 
 
