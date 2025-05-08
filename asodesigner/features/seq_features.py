@@ -288,4 +288,120 @@ def calculate_chimera_ars(suffix_array, target_sequence, step_size):
 
     chimera_ars_score = np.mean(longest_prefix_lengths)
     return chimera_ars_score
-###################################################################
+###################################################################################
+def add_interaction_features(df : pd.DataFrame, feature_pairs: list[tuple[str, str]]) -> pd.DataFrame:
+    """
+    Given a DataFrame and a list of columns pairs (colA ,colB), create new cloumns named "colA*colB"
+    containing element-wise product.
+    df - DataFrame with your base features already computed
+    feature_pairs : list of(str,str)
+    """
+    for col_a , col_b in feature_pairs:
+        new_col = f"{col_a}*{col_b}"
+        if new_col in df.columns:
+            continue
+        df[new_col] = df[col_a] * df[col_b]
+    return df
+#################################################################
+
+def cg_dinucleotide_fraction(seq: str) -> float:
+    """
+    Calculate the fraction of 'CG' dinucleotides within a DNA sequence.
+
+    A higher CG dinucleotide fraction suggests increased potential for immunogenicity
+    issues when used as antisense oligonucleotides (ASOs).
+
+    Args:
+        seq (str): DNA sequence (A, C, G, T)
+
+    Returns:
+        float: CG dinucleotide fraction (normalized between 0 and 1)
+    """
+    seq = seq.upper()
+    cg_count = 0
+    for i in range (len(seq)-1):
+        dinucleotide = seq[i:i+2]
+        if dinucleotide == 'CG':
+            cg_count += 1
+    total_possible_pairs = len(seq) - 1
+    if total_possible_pairs == 0:
+        return 0.0
+    cg_fraction = cg_count / total_possible_pairs
+    return cg_fraction
+########################################################################
+
+def poly_pyrimidine_stretch(seq: str, min_run_length: int = 4) -> float:
+    """
+    Calculates the fraction of sequence containing poly-pyrimidine stretches (C and T bases).
+
+    Long consecutive pyrimidine runs may cause undesired secondary structures
+    or non-specific binding of antisense oligonucleotides (ASOs).
+
+    Args:
+        seq (str): DNA sequence (A/C/G/T)
+        min_run_length (int): Minimum length of pyrimidine run considered problematic (default=4)
+
+    Returns:
+        float: Normalized poly-pyrimidine stretch score between 0 and 1
+    """
+    seq = seq.upper()
+    pyrimidines = "CT"
+    stretch_count = 0
+    i = 0
+
+    while i < len(seq):
+        run_length = 0
+        while i < len(seq) and seq[i] in pyrimidines:
+            run_length += 1
+            i += 1
+
+        if run_length >= min_run_length:
+            stretch_count += 1
+
+        if run_length == 0:
+            i += 1
+
+    return stretch_count / len(seq) if len(seq) > 0 else 0.0
+
+############################################################################
+
+def dinucleotide_entropy(seq: str) -> float:
+    """
+    Calculates normalized Shannon entropy (0–1) based on dinucleotide frequencies in the sequence.
+
+    High entropy = greater structural complexity and diversity.
+    Low entropy = repetitive or predictable dinucleotide patterns.
+
+    Args:
+        seq (str): DNA sequence
+
+    Returns:
+        float: Normalized entropy (0 to 1)
+    """
+    seq = seq.upper()
+    if len(seq) < 2:
+        return 0.0  # too short to form any dinucleotide
+
+    dinucleotides = [seq[i:i+2] for i in range(len(seq)-1)]
+    freq = pd.Series(dinucleotides).value_counts(normalize=True)
+    raw_entropy = entropy(freq, base=2)
+
+    return raw_entropy / 4  # normalization to range [0, 1]
+##############################################################################
+def gc_block_length(seq):
+    """
+    find the length of the longest cosecutive G/C block in the sequence
+    """
+    seq = seq.upper()
+    max_len = 0
+    curr_len = 0
+    for base in seq:
+        if base in "GC":
+            curr_len += 1
+            max_len = max(max_len , curr_len)
+        else:
+            curr_len = 0
+    return max_len
+
+################################################################################
+   
