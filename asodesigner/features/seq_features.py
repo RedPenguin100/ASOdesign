@@ -2,17 +2,18 @@ import re
 import numpy as np
 import primer3
 import codonbias as cb
-
+import pandas as pd
 
 from numba import njit
 from scipy.stats import entropy
 from collections import Counter
 
-from util import get_antisense
+from asodesigner.util import get_antisense
 
 from asodesigner.features.suffix_array import longest_prefix
 
 from primer3 import calc_hairpin
+from collections import defaultdict
 
 def hairpin_dG_energy(seq: str):
     """
@@ -75,8 +76,9 @@ def homooligo_count(seq: str) -> float:
 
 def compute_ENC(seq: str) -> float:
     enc = cb.scores.EffectiveNumberOfCodons(bg_correction=True)
-    enc_score = enc.get_score(seq) / 61
-    return enc_score
+    enc_score = enc.get_score(seq) 
+    normalized_enc = (enc_score - 20) / (61 - 20)
+    return normalized_enc
 
 
 def seq_entropy(seq: str) -> float:
@@ -404,4 +406,108 @@ def gc_block_length(seq):
     return max_len
 
 ################################################################################
-   
+def purine_content(seq):
+    """
+    Calculates the fraction of purine bases (A and G) in the sequence.
+    Purine-rich sequences may be more stable and bind better to RNA targets.
+    """
+    seq = seq.upper()
+    count = seq.count("A") + seq.count("G")
+    if len(seq) == 0:
+        return 0.0
+    return count / len(seq)
+#################################################################   
+def Niv_ENC(seq: str, strict: bool = False) -> float:
+    """
+    Calculates the Effective Number of Codons (ENC) for a DNA sequence.
+    
+    If strict=True, uses the original Wright (1990) formula strictly,
+    requiring all four F-values (F2, F3, F4, F6). Otherwise, uses only the 
+    available families to compute a partial ENC approximation.
+    
+    Args:
+        seq (str): DNA sequence (assumed uppercase A/C/G/T)
+        strict (bool): Whether to enforce full Wright formula (default: False)
+        
+    Returns:
+        float: Normalized ENC in [0, 1] (0 = max bias, 1 = no bias)
+    """
+    seq = seq.upper()
+    seq = seq[:len(seq) - (len(seq) % 3)]  # Trim to full codons
+    codons = [seq[i:i+3] for i in range(0, len(seq), 3)]
+    codon_counts = defaultdict(int)
+    for codon in codons:
+        codon_counts[codon] += 1
+
+    FAMILY_GROUPS = {
+        2: [['TTT', 'TTC'], ['TAT', 'TAC'], ['CAT', 'CAC'], ['CAA', 'CAG'],
+            ['AAT', 'AAC'], ['AAA', 'AAG'], ['GAT', 'GAC'], ['GAA', 'GAG'], ['TGT', 'TGC']],
+        3: [['ATT', 'ATC', 'ATA']],
+        4: [['CCT', 'CCC', 'CCA', 'CCG'], ['ACT', 'ACC', 'ACA', 'ACG'],
+            ['GCT', 'GCC', 'GCA', 'GCG'], ['GTT', 'GTC', 'GTA', 'GTG'], ['GGT', 'GGC', 'GGA', 'GGG']],
+        6: [['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'],
+            ['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'],
+            ['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG']]
+    }
+
+    F_values = {}
+    for k, families in FAMILY_GROUPS.items():
+        F_list = []
+        for family in families:
+            counts = [codon_counts[c] for c in family]
+            total = sum(counts)
+            if total == 0:
+                continue
+            freqs = [count / total for count in counts]
+            F_aa = sum(f ** 2 for f in freqs)
+            F_list.append(F_aa)
+        if F_list:
+            F_values[k] = np.mean(F_list)
+
+    try:
+        weights = {2: 9, 3: 1, 4: 5, 6: 3}
+
+        if strict:
+            # Require all four F-values to compute full ENC
+            if not all(k in F_values for k in [2, 3, 4, 6]):
+                return 0.0  # Not enough info to compute strict ENC
+            ENC = 2 + 9 / F_values[2] + 1 / F_values[3] + 5 / F_values[4] + 3 / F_values[6]
+        else:
+            # Use only available F-values (partial ENC)
+            ENC = 2 + sum(weights[k] / F_values[k] for k in F_values)
+
+        normalized_enc = (ENC - 20) / (61 - 20)
+        return max(0.0, min(1.0, normalized_enc))
+
+    except ZeroDivisionError:
+        return 1.0  # fallback if unexpected division by 0
+
+########################################################################################################
+def at_rich_region_score(seq: str, min_run_length: int = 4) -> float:
+    """
+    Calculates the fraction of the sequence containing AT-rich stretches (A and T bases).
+
+    Long consecutive A/T runs may reduce structural stability and impact ASO performance.
+
+    Args:
+        seq (str): DNA sequence (A/C/G/T)
+        min_run_length (int): Minimum length of A/T run considered problematic (default = 4)
+
+    Returns:
+        float: Normalized AT-rich region score (0 to 1)
+    """
+    seq = seq.upper()
+    at_bases = "AT"
+    stretch_count = 0
+    i = 0
+    while i < len(seq):
+        run_length = 0
+        while i < len(seq) and seq[i] in at_bases:
+            run_length += 1
+            i += 1
+        if run_length >= min_run_length:
+            stretch_count += 1
+        if run_length == 0:
+            i += 1
+    return stretch_count / len(seq) if len(seq) > 0 else 0.0
+########################################################################################################   
