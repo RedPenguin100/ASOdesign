@@ -85,7 +85,7 @@ def filter_cell_line_human(df, cell_line_info):
     return df[df['Cell_line'].isin(cell_human)]
 
 
-def test_which_gene_pkk(df):
+def which_gene_pkk(df):
     df_gene_test = df[df['Target_gene'] == 'PKK']
     pkk_aso = df_gene_test['Sequence'].tolist()
 
@@ -104,7 +104,7 @@ def test_which_gene_pkk(df):
     return {'RIPK4': result_ripk4, 'KLKB1': result_klkb1 }
 
 
-def test_which_gene_tau(df):
+def which_gene_tau(df):
     df_gene_test = df[df['Target_gene'] == 'Tau']
     tau_aso = df_gene_test['Sequence'].tolist()
 
@@ -118,7 +118,7 @@ def test_which_gene_tau(df):
     return {'MAPT': result_mapt, 'index':index_mapt}
 
 
-def test_gene_snca(df):
+def gene_snca(df):
     df_gene_test = df[df['Target_gene'] == 'SNCA']
     snca_aso = df_gene_test['Sequence'].tolist()
 
@@ -155,12 +155,12 @@ if __name__ == "__main__":
         create_summary(df)
 
         #testing search for gene functions with known gene
-        test_func_snca = test_gene_snca(df)
+        test_func_snca = gene_snca(df)
 
         # adding a column of the canonical name of the genes
         # if original name is inconclusive, a check will run and determine based on ASOs sequences in df
-        where_is_pkk = test_which_gene_pkk(df)
-        is_tau_in_mapt = test_which_gene_tau(df)
+        where_is_pkk = which_gene_pkk(df)
+        is_tau_in_mapt = which_gene_tau(df)
         df_genes_info = load_csv('genes_info.csv')
         df_new = df.merge(df_genes_info[['Target_gene', 'Canonical Gene Name']], on='Target_gene', how='left') # note that 2 genes were determined by their ASOs sequences, and 1 with the help of the internet
 
