@@ -510,4 +510,3 @@ def at_rich_region_score(seq: str, min_run_length: int = 4) -> float:
         if run_length == 0:
             i += 1
     return stretch_count / len(seq) if len(seq) > 0 else 0.0
-########################################################################################################   
