@@ -4,6 +4,7 @@ from Bio.Seq import Seq
 import gffutils
 import os
 import pandas as pd
+from asodesigner.read_human_genome import get_locus_to_data_dict
 
 
 
@@ -21,107 +22,154 @@ def find_in_transcripts(reverse_aso_seq, gene_name, transcripts_dict):
     if gene_name in transcripts_dict:
         gene_transcripts = transcripts_dict[gene_name]
         for i in range(1,len(gene_transcripts),2):
-            in_this_transcript = find_if_seq_in_gene(str(reverse_aso_seq), gene_transcripts[i])
+            transcript_seq = gene_transcripts[i]
+            in_this_transcript = find_if_seq_in_gene(str(reverse_aso_seq), transcript_seq)
             if in_this_transcript != -1:
-                return in_this_transcript, gene_transcripts[i-1], gene_transcripts[i]
+                gene_id = gene_transcripts[i-1]
+                gene_id = gene_id[1:].split()[0]
+                return in_this_transcript, gene_id, transcript_seq
     return -1, -1, -1
 
 def make_transcripts_dict(locus_to_data):
     gene_transcripts = {}
     for gene_name in locus_to_data:
-        #gene_transcripts[gene_name] = get_transcripts_of_gene(locus_to_data[gene_name].gene_id)
         gene_transcripts[gene_name] = get_transcripts_of_gene(locus_to_data[gene_name])
     return gene_transcripts
 
 
-def find_aso(df, locus_to_data, df_with_seq):
+def find_aso(df, locus_to_data, dict_with_seq):
     # receiving dataframe with sequences of aso and their canonical gene name, dictionary with gene info and df of genes with their sequence
     # returning the dataframe with added columns about the first location of an aso
     # only for human sequences
     gene_transcripts_dict = make_transcripts_dict(locus_to_data)
     aso_unique_sequence = df['Sequence'].unique()
+    relevant_transcripts_dict = {}
     for aso in aso_unique_sequence:
         reverse_aso_seq = str(Seq(aso).reverse_complement())
         this_rows = df[df['Sequence'] == aso]
         this_aso_gene = this_rows["Canonical Gene Name"].iloc[0]
+        found = False
         if this_aso_gene in locus_to_data:
-            gene_seq = str(df_with_seq[df_with_seq["gene"] == this_aso_gene]['gene_sequence'])
+            gene_seq = str(dict_with_seq[this_aso_gene])
             in_pre_mrna = find_if_seq_in_gene(reverse_aso_seq, gene_seq)
             if in_pre_mrna != -1:
-               df.loc[df["Sequence"] == aso, 'Where_ASO_is_found'] = 'pre_mRNA'
-               df.loc[df["Sequence"] == aso, 'Seqeuence_of_location'] = gene_seq
+               df.loc[df["Sequence"] == aso, 'Transcript'] = None
                df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = int(in_pre_mrna)
+               df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = int(in_pre_mrna)/len(gene_seq)
+               found = True
             else:
                 in_transcript, transcript_id, transcript_seq = find_in_transcripts(reverse_aso_seq, this_aso_gene,
                                                                                    gene_transcripts_dict)
                 if in_transcript != -1:
-                    df.loc[df["Sequence"] == aso, 'Where_ASO_is_found'] = transcript_id
-                    df.loc[df["Sequence"] == aso, 'Seqeuence_of_location'] = transcript_seq
+                    df.loc[df["Sequence"] == aso, 'Transcript'] = transcript_id
                     df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = int(in_transcript)
-        else:
-            df.loc[df["Sequence"] == aso, 'Where_ASO_is_found'] = None
-            df.loc[df["Sequence"] == aso, 'Seqeuence_of_location'] = None
+                    df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = int(in_transcript)/len(transcript_seq)
+                    relevant_transcripts_dict[transcript_id] = transcript_seq
+                    found = True
+                    # all transcripts that exist, create a different csv with transcript id and its sequence, only relevant ones
+        if not found:
+            df.loc[df["Sequence"] == aso, 'Transcript'] = None
             df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = None
-    return df
+            df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = None
+    return df, relevant_transcripts_dict
 
-def find_aso_for_snord(df, locus_to_data, df_with_seq):
-    gene_transcripts_dict = make_transcripts_dict(locus_to_data)
-    aso_unique_sequence = df['Sequence'].unique()
-    for aso in aso_unique_sequence:
+
+def find_aso_for_snord(df, locus_to_data, dict_with_seq):
+    relevant_transcripts_dict = {}
+    aso_unique_sequences = df['Sequence'].unique()
+
+    for aso in aso_unique_sequences:
         reverse_aso_seq = str(Seq(aso).reverse_complement())
-        this_rows = df[df['Sequence'] == aso]
-        this_aso_gene = this_rows["Canonical Gene Name"].iloc[0]
-        if this_aso_gene in locus_to_data:
-            gene_seq = str(df_with_seq[df_with_seq["gene"] == this_aso_gene]['gene_sequence'])
-            in_pre_mrna = find_if_seq_in_gene(reverse_aso_seq, gene_seq)
-            if in_pre_mrna != -1:
-                df.loc[df["Sequence"] == aso, 'Where_ASO_is_found'] = 'pre_mRNA'
-                df.loc[df["Sequence"] == aso, 'Seqeuence_of_location'] = gene_seq
-                df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = int(in_pre_mrna)
-            else:
-                in_transcript, transcript_id, transcript_seq = find_in_transcripts(reverse_aso_seq, this_aso_gene,
-                                                                                   gene_transcripts_dict)
-                if in_transcript != -1:
-                    df.loc[df["Sequence"] == aso, 'Where_ASO_is_found'] = transcript_id
-                    df.loc[df["Sequence"] == aso, 'Seqeuence_of_location'] = transcript_seq
-                    df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = int(in_transcript)
-        else:
-            df.loc[df["Sequence"] == aso, 'Where_ASO_is_found'] = None
-            df.loc[df["Sequence"] == aso, 'Seqeuence_of_location'] = None
+        found = False
+        for key, value in dict_with_seq.items():
+            gene_seq = str(value)
+            this_id = locus_to_data.get(key)
+            # First try to find in gene sequence
+            pos_in_gene = find_if_seq_in_gene(reverse_aso_seq, gene_seq)
+            if pos_in_gene != -1:
+                df.loc[df["Sequence"] == aso, 'Transcript'] = this_id
+                df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = pos_in_gene
+                df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = pos_in_gene / len(gene_seq)
+                found = True
+                break
+            # Try to find in transcripts
+            gene_transcripts_dict = make_transcripts_dict({key: this_id})
+            pos_in_transcript, transcript_id, transcript_seq = find_in_transcripts(reverse_aso_seq, key, gene_transcripts_dict)
+            if pos_in_transcript != -1:
+                df.loc[df["Sequence"] == aso, 'Transcript'] = transcript_id
+                df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = pos_in_transcript
+                df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = pos_in_transcript / len(transcript_seq)
+                relevant_transcripts_dict[transcript_id] = transcript_seq
+                found = True
+                break
+        # If not found in any gene or transcript
+        if not found:
+            df.loc[df["Sequence"] == aso, 'Transcript'] = None
             df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = None
+            df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = None
+    return df, relevant_transcripts_dict
+
+def aso_for_HBV(df, hbv_data):
+    aso_unique_sequences = df['Sequence'].unique()
+    for aso in aso_unique_sequences:
+        reverse_aso_seq = str(Seq(aso).reverse_complement())
+        hbv_seq = hbv_data.iloc[0]['gene_sequence']
+        where_aso = find_if_seq_in_gene(reverse_aso_seq, hbv_seq)
+        if where_aso != -1:
+            df.loc[df["Sequence"] == aso, 'Transcript'] = None
+            df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = int(where_aso)
+            df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = int(where_aso) / len(hbv_seq)
+        else:
+            df.loc[df["Sequence"] == aso, 'Transcript'] = None
+            df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = None
+            df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = None
     return df
 
-def check_get_id_from_annotations(file_path, db_path, gene_list):
-    if not os.path.exists(db_path):
-        print("Creating DB...")
-        gffutils.create_db(
-            file_path,
-            dbfn=db_path,
-            force=True,
-            keep_order=True,
-            disable_infer_transcripts=True,
-            disable_infer_genes=True,
-            merge_strategy='merge',
-            verbose=True,
-        )
-        print("DB created")
-    else:
-        print("DB already exists. Using cached version.")
 
-    db = gffutils.FeatureDB(db_path)
+
+def get_id_from_annotations(file_path, gene_list):
     gene_name_to_id = {}
 
-    for gene in db.features_of_type('gene'):
-        # Safely extract gene_id and gene_name
-        gene_id = gene.attributes.get('gene_id', [None])[0]
-        gene_name = gene.attributes.get('gene_name', [None])[0]
+    with open(file_path, 'r') as gtf:
+        for line in gtf:
+            if line.startswith('#'):
+                continue  # skip header
 
-        # Only add if both are present
-        if gene_id and gene_name and gene_name in gene_list:
-            gene_name_to_id[gene_name] = gene_id
+            columns = line.strip().split('\t')
+            if len(columns) < 9:
+                continue  # skip malformed lines
+
+            feature_type = columns[2]
+            if feature_type != 'gene':
+                continue
+
+            # Parse the attributes field
+            attributes_field = columns[8]
+            attributes = {}
+            for attr in attributes_field.split(';'):
+                if attr.strip():
+                    key_value = attr.strip().split(' ', 1)
+                    if len(key_value) == 2:
+                        key, value = key_value
+                        attributes[key] = value.strip('"')
+
+            gene_name = attributes.get('gene_name')
+            gene_id = attributes.get('gene_id')
+
+            if gene_name and gene_id and gene_name in gene_list:
+                gene_name_to_id[gene_name] = gene_id
+
     return gene_name_to_id
 
-def get_seq_for_genes(dict_gene):
+def get_seq_for_genes(dict_with_id, locus_to_data):
+    df = pd.DataFrame(list(dict_with_id.items()), columns=["gene", "gene_id"])
+    df['gene_sequence'] = None
+    for gene in dict_with_id:
+        seq = str(locus_to_data[gene].full_mrna)
+        df.loc[df["gene"] == gene, 'gene_sequence'] = seq
+    return df
+
+def get_seq_for_snord(dict_gene):
     df = pd.DataFrame(list(dict_gene.items()), columns=["gene", "gene_id"])
     df['gene_sequence'] = None
     for gene in dict_gene:
@@ -131,22 +179,61 @@ def get_seq_for_genes(dict_gene):
     return df
 
 
-if __name__ == "__main__":
-    df = load_csv('data_from_article_fixed.csv')
-    gene_list = df['Canonical Gene Name'].unique()
-    locus_to_data = check_get_id_from_annotations('gencode.v34.basic.annotation.gtf', 'human_annotations.db', gene_list)
-    df_with_seq = get_seq_for_genes(locus_to_data)
+def get_initial_sequences(df, gene_list):
+    # run this only one time to load gene sequences to csv, the file is already exist after
+    # for this function to work, need to upload to this directory 'gencode.v34.basic.annotation.gtf'
+    id_to_data = get_id_from_annotations('gencode.v34.basic.annotation.gtf', gene_list)
+    locus_to_data = get_locus_to_data_dict(gene_subset=gene_list)
+    df_with_seq = get_seq_for_genes(id_to_data, locus_to_data)
     snord115_info = gget.search('SNORD115', species='homo_sapiens')
     snord_dict = snord115_info.set_index('gene_name')['ensembl_id'].to_dict()
-    df_snord_with_seq = get_seq_for_genes(snord_dict)
-
-    # df_sub_unique_aso = get_sub_df(df, df_with_seq['gene'].tolist())
-    # df_unique_update = find_aso(df_sub_unique_aso, locus_to_data, df_with_seq)
-    # df_sub_snord = get_sub_df(df, 'HBII-52')
-    #
-
+    df_snord_with_seq = get_seq_for_snord(snord_dict)
     HBV = read_fasta_biopython('GCF_HBV.fna')
     seq_HBV = list(HBV.values())[0]
     df_with_seq.loc[len(df_with_seq)] = ['HBV', None, seq_HBV]
     df_genes_seq = pd.concat([df_with_seq, df_snord_with_seq], ignore_index=True)
     df_genes_seq.to_csv('Genes with Sequences.csv', index=False)
+
+
+def get_relevant_data():
+    df_genes_seq = load_csv('Genes with Sequences.csv')
+    df_reg_genes = df_genes_seq[:18]
+    hbv_data = df_genes_seq[18:19]
+    df_snords = df_genes_seq[19:]
+    dict_reg_id = dict(zip(df_reg_genes['gene'], df_reg_genes['gene_id']))
+    dict_snord_id = dict(zip(df_snords['gene'], df_snords['gene_id']))
+    dict_reg_seq = dict(zip(df_reg_genes['gene'], df_reg_genes['gene_sequence']))
+    dict_snord_seq = dict(zip(df_snords['gene'], df_snords['gene_sequence']))
+    return dict_reg_id, dict_snord_id, hbv_data, dict_reg_seq, dict_snord_seq
+
+
+
+
+if __name__ == "__main__":
+    df = load_csv('data_from_article_fixed.csv')
+    gene_list = df['Canonical Gene Name'].unique()
+    #get_initial_sequences(df, gene_list) ## for this function to work, need to upload to this directory 'gencode.v34.basic.annotation.gtf'
+    df_genes_seq_n = load_csv('Genes with Sequences.csv')
+    dict_reg_id, dict_snord_id, hbv_data, dict_reg_seq, dict_snord_seq = get_relevant_data()
+    df_sub_unique_aso = get_sub_df(df, list(dict_reg_seq.keys()))
+    df_unique_update, relevant_transcripts_dict = find_aso(df_sub_unique_aso, dict_reg_id, dict_reg_seq)
+    df_sub_snord = get_sub_df(df, ['HBII-52'])
+    df_unique_snord, transcripts_snord = find_aso_for_snord(df_sub_snord, dict_snord_id, dict_snord_seq)
+    df_sub_hbv = get_sub_df(df, ['HBV'])
+    df_unique_hbv = aso_for_HBV(df_sub_hbv, hbv_data)
+
+    df_modified = pd.concat([
+        df_unique_update[['Sequence', 'Transcript', 'Location_in_sequence', 'Location_div_by_length']],
+        df_unique_snord[['Sequence', 'Transcript', 'Location_in_sequence', 'Location_div_by_length']],
+        df_unique_hbv[['Sequence', 'Transcript', 'Location_in_sequence', 'Location_div_by_length']]
+    ], ignore_index=True)
+    df_with_info = df.copy()
+    df_with_info = df_with_info.merge(
+        df_modified,
+        on='Sequence',
+        how='left'
+    )
+    df_with_info.to_csv('data_updated_18.5.csv', index=False)
+
+
+
