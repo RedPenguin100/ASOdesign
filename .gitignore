@@ -188,4 +188,4 @@ data/human/**/*.db
 
 tmp/
 
-cache/**/*.Identifier
+cache/**/*.IdentifierMiniconda3-latest-Linux-x86_64.sh
