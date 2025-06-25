@@ -1,8 +1,11 @@
 import pytest
 
+from external.risearch.RIsearch1.numpy_to_csv import dsm_variable_to_csv,numpy_to_csv
+
 from asodesigner.fold import get_mfe_scores, get_trigger_mfe_scores_by_risearch, Interaction, dump_target_file
 from asodesigner.target_finder import get_gfp_first_exp
 from asodesigner.util import get_antisense
+
 
 
 def test_empty():
@@ -68,6 +71,40 @@ def test_risearch_gfp():
     for bad_sample in bad_samples:
         result = get_trigger_mfe_scores_by_risearch(bad_sample, name_to_seq,
                                                     interaction_type=Interaction.DNA_RNA_NO_WOBBLE, minimum_score=900,
+                                                    neighborhood=30, parsing_type='2')
+        print(result)
+
+        mfe_scores = get_mfe_scores(result, '2')
+        print(mfe_scores)
+
+
+from external.risearch.RIsearch1.numpy_to_csv import dsm_variable_to_csv,numpy_to_csv
+from asodesigner.modified_dsm import make_dsm_ps_dna_rna , make_dsm_dna_rna
+
+def test_risearch_gfp_modified():
+    dsm_variable_to_csv()
+    make_dsm_dna_rna()
+
+    gfp_seq = get_gfp_first_exp(gap=0)
+    sample_seq = gfp_seq[:20]
+    print("GFP ontarget(?) : ", gfp_seq[695:714])
+    print("Sample", sample_seq)
+    print("Sample antisense", get_antisense(sample_seq))
+    # name_to_seq = {f"gfp_seq{i}" : gfp_seq for i in range(100)}
+    name_to_seq = {f"gfp_seq": gfp_seq}
+    result = get_trigger_mfe_scores_by_risearch(sample_seq, name_to_seq,
+                                                interaction_type=Interaction.MODIFIED,
+                                                minimum_score=900, neighborhood=30, parsing_type='2')
+    print(result)
+
+    mfe_scores = get_mfe_scores(result, '2')
+    print(mfe_scores)
+
+    bad_samples = [s + sample_seq[3:20] for s in ["AAA", "ATA", "AGA", "ACG"]]
+
+    for bad_sample in bad_samples:
+        result = get_trigger_mfe_scores_by_risearch(bad_sample, name_to_seq,
+                                                    interaction_type=Interaction.MODIFIED, minimum_score=900,
                                                     neighborhood=30, parsing_type='2')
         print(result)
 
