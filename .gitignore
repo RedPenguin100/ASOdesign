@@ -189,3 +189,6 @@ data/human/**/*.db
 tmp/
 
 cache/**/*.Identifier
+
+#local files
+todo.txt
