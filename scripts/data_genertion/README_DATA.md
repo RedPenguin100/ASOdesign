@@ -8,6 +8,11 @@ oligonucleotides through deep learning for IDO1 gene regulation. Mol Ther Nuclei
 ## Latest version of data
 data_asoptimizer_updated.csv
 
+## NEW UPDATE FOR ALL CSV's
+A new column was added to each version of the data - 'index'. Each row has a unique index to keep order
+of data and further features. Please make sure to run your scripts again with the indices to ensure
+all data is appropriately saved and organized.
+
 ## Added this version
 1. Column 'mod_scan' - binary column states whether the experiment is part of modification scan (1) 
 or not (0). An experiment is considered as mod_scan if there is a subset of rows (more than 1) 

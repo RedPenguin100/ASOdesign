@@ -139,6 +139,7 @@ if __name__ == "__main__":
     if df is not None:
         print(df.head())  # Display the first few rows
         print(df.dtypes)
+
         # When loading the DF at first, an error occurred stating some columns had mixed data types in them
         # Identifying the columns with mixed data types and converting for one type
         mixed_cols = [col for col in df.columns if df[col].map(type).nunique() > 1]
@@ -154,6 +155,7 @@ if __name__ == "__main__":
         print(df.dtypes)
         create_summary(df)
 
+        df = df.reset_index()
         #testing search for gene functions with known gene
         test_func_snca = gene_snca(df)
 
