@@ -1,19 +1,9 @@
-from asodesigner.fold import get_mfe_scores, get_trigger_mfe_scores_by_risearch, Interaction, dump_target_file
+from asodesigner.fold import get_trigger_mfe_scores_by_risearch
 
 import pandas as pd
 from io import StringIO
-import ViennaRNA as RNA
-import numpy as np
-
 import os
-import re
-import random
-import subprocess
-from Bio.Seq import Seq
-from typing import Dict, List
-from enum import Enum
 
-from asodesigner.consts import RISEARCH1_BINARY_PATH, TMP_PATH ,RISEARCH1_PATH
 
 
 # Set base directory relative to script
@@ -23,7 +13,7 @@ data_dir = os.path.abspath(os.path.join(script_dir, "..", "data_genertion"))
 # Load the main ASO dataset
 data_path = os.path.join(data_dir, "data_asoptimizer_updated.csv")
 may_df = pd.read_csv(data_path)
-may_df = may_df.head(4)
+may_df = may_df.head(6)
 
 # Expression files path
 expr_path = os.path.join(data_dir, "cell_line_expression")
@@ -62,7 +52,8 @@ def aggregate_off_targets(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_off_target_feature(cell_line2df, ASO_df):
-    index_score_vec = {}
+    index_score_vec_TPM = {}
+    index_score_vec_norm = {}
 
     for idx, row in ASO_df.iterrows():
 
@@ -77,7 +68,8 @@ def get_off_target_feature(cell_line2df, ASO_df):
         curr_df = cell_line2df[cell_line]
 
         name_to_seq = {}
-        name_to_exp = {}
+        name_to_exp_TPM = {}
+        name_to_exp_norm = {}
 
         for _, gene_row in curr_df.iterrows():
             curr_gene = gene_row['Gene'].split()[0]
@@ -94,17 +86,19 @@ def get_off_target_feature(cell_line2df, ASO_df):
                 continue
 
             mRNA_seq = mut_seq if not pd.isna(mut_seq) else og_seq
-            exp_level = gene_row['expression_TPM']
+            exp_TPM = gene_row['expression_TPM']
+            exp_norm = gene_row['expression_norm']
 
             name_to_seq[curr_gene] = mRNA_seq
-            name_to_exp[curr_gene] = exp_level
+            name_to_exp_TPM[curr_gene] = exp_TPM
+            name_to_exp_norm[curr_gene] = exp_norm
 
 
         # Calculate mfe scores
         result_dict = get_trigger_mfe_scores_by_risearch(
             ASO_seq,
             name_to_seq,
-            minimum_score=800,
+            minimum_score=900,
             parsing_type='2'
         )
         result_df = parse_risearch_output(result_dict)
@@ -113,15 +107,22 @@ def get_off_target_feature(cell_line2df, ASO_df):
         print(f'002: {result_df_agg}')
 
         # Weight by expression
-        result_dict_weighted = {
-            row['target']: row['energy'] * name_to_exp.get(row['target'], 0)
+        result_dict_weighted_TPM = {
+            row['target']: row['energy'] * name_to_exp_TPM.get(row['target'], 0)
             for _, row in result_df_agg.iterrows()
         }
-        print(result_dict_weighted)
-        index_score_vec[index] = sum(result_dict_weighted.values())
+        result_dict_weighted_norm = {
+            row['target']: row['energy'] * name_to_exp_norm.get(row['target'], 0)
+            for _, row in result_df_agg.iterrows()
+        }
+        print(result_dict_weighted_TPM)
+        index_score_vec_TPM[index] = sum(result_dict_weighted_TPM.values())
+
+        print(result_dict_weighted_norm)
+        index_score_vec_norm[index] = sum(result_dict_weighted_norm.values())
 
 
-    return index_score_vec
+    return [index_score_vec_TPM, index_score_vec_norm]
 
 
 off_target_vec = get_off_target_feature(cell_line2df_, may_df)
