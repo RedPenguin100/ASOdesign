@@ -188,4 +188,7 @@ data/human/**/*.db
 
 tmp/
 
-cache/**/*.IdentifierMiniconda3-latest-Linux-x86_64.sh
+cache/**/*.Identifier
+
+#local files
+todo.txt
