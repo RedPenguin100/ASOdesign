@@ -222,17 +222,111 @@ if __name__ == "__main__":
     df_sub_hbv = get_sub_df(df, ['HBV'])
     df_unique_hbv = aso_for_HBV(df_sub_hbv, hbv_data)
 
-    df_modified = pd.concat([
+    df_modified_temp = pd.concat([
         df_unique_update[['Sequence', 'Transcript', 'Location_in_sequence', 'Location_div_by_length']],
         df_unique_snord[['Sequence', 'Transcript', 'Location_in_sequence', 'Location_div_by_length']],
         df_unique_hbv[['Sequence', 'Transcript', 'Location_in_sequence', 'Location_div_by_length']]
     ], ignore_index=True)
+
+    # --- NEW LOGIC TO PRIORITIZE NON-NAN LOCATION ---
+    # 1. Create a helper column that is False for NaN and True for non-NaN
+    df_modified_temp['has_location'] = df_modified_temp['Location_in_sequence'].notna()
+
+    # 2. Sort: True (non-NaN) comes before False (NaN).
+    # Sorting by 'Sequence' secondarily ensures stable sorting for identical sequences.
+    df_modified_temp_sorted = df_modified_temp.sort_values(
+        by=['Sequence', 'has_location'],
+        ascending=[True, False]  # Sort 'Sequence' ascending, 'has_location' descending (True first)
+    )
+
+    # 3. Drop duplicates: keep='first' will now keep the row with non-NaN location if one exists.
+    df_modified = df_modified_temp_sorted.drop_duplicates(subset='Sequence', keep='first')
+
+    # 4. Drop the temporary 'has_location' column
+    df_modified = df_modified.drop(columns=['has_location'])
+    # --- END NEW LOGIC ---
+
+    print(f"Is 'Sequence' unique in df_modified before merge? {df_modified['Sequence'].is_unique}")
+
     df_with_info = df.copy()
     df_with_info = df_with_info.merge(
         df_modified,
         on='Sequence',
         how='left'
     )
+
+    # --- 1. Check Row Counts (most important initial check) ---
+    print(f"\nOriginal df rows: {len(df)}")
+    print(f"df_with_info rows after merge: {len(df_with_info)}")
+
+    if len(df) == len(df_with_info):
+        print("Row counts match: The merge did NOT duplicate rows from the original df.")
+    else:
+        print("WARNING: Row counts DO NOT match. The merge introduced/removed rows.")
+
+    # --- 2. Check if 'index' is still unique in df_with_info ---
+    print(f"\nIs 'index' unique in df (original)? {df['index'].is_unique}")
+    print(f"Is 'index' unique in df_with_info (after merge)? {df_with_info['index'].is_unique}")
+
+    if df_with_info['index'].is_unique:
+        print("The 'index' remains unique in df_with_info, confirming no row duplication.")
+    else:
+        print("WARNING: 'index' is NOT unique in df_with_info. This indicates row duplication.")
+
+    # --- 3. Verify 'index' values are preserved ---
+    # You can check if all index values are still present and in the same order
+    # (if the merge didn't reorder things, which a left merge usually tries to avoid).
+    # This is typically true if the 'Sequence' column in df_with_info had unique values too.
+    if df['index'].equals(df_with_info['index']):
+        print("\n'index' values and order are identical between original df and df_with_info.")
+    else:
+        print(
+            "\n'index' values/order might have changed. This is less critical if its uniqueness is maintained.")
+
+    # --- 4. Inspect rows where new information was added (or not added) ---
+
+    # Rows where new location information was successfully added
+    print("\n--- Sample of rows where new location info was added (first 5) ---")
+    # Filter for rows where Location_in_sequence is NOT NaN
+    rows_with_location = df_with_info[df_with_info['Location_in_sequence'].notna()]
+    print(rows_with_location.head())
+    print(f"Total rows with location information: {len(rows_with_location)}")
+
+    # Rows where no location information was found (i.e., new columns are NaN)
+    print("\n--- Sample of rows where NO new location info was found (first 5) ---")
+    # Filter for rows where Location_in_sequence IS NaN
+    rows_without_location = df_with_info[df_with_info['Location_in_sequence'].isna()]
+    print(rows_without_location.head())
+    print(f"Total rows without location information: {len(rows_without_location)}")
+
+    # --- 5. Compare specific values for a chosen 'Sequence' ---
+    # Pick a Sequence that you know should have been mapped
+    # Choose one from df_with_info that has a location, e.g., 'AGAGGAAAATTTTTCCATCAG'
+    # And one that doesn't, if any.
+
+    sample_sequence_with_loc = rows_with_location['Sequence'].iloc[0] if not rows_with_location.empty else None
+    if sample_sequence_with_loc:
+        print(f"\n--- Details for a sample sequence with location: '{sample_sequence_with_loc}' ---")
+        print("From df (original):")
+        print(df[df['Sequence'] == sample_sequence_with_loc])
+        print("\nFrom df_with_info (after merge):")
+        print(df_with_info[df_with_info['Sequence'] == sample_sequence_with_loc])
+
+    # If you have a sequence that did NOT get a location, pick one:
+    sample_sequence_without_loc = rows_without_location['Sequence'].iloc[0] if not rows_without_location.empty else None
+    if sample_sequence_without_loc:
+        print(f"\n--- Details for a sample sequence WITHOUT location: '{sample_sequence_without_loc}' ---")
+        print("From df (original):")
+        print(df[df['Sequence'] == sample_sequence_without_loc])
+        print("\nFrom df_with_info (after merge):")
+        print(df_with_info[df_with_info['Sequence'] == sample_sequence_without_loc])
+
+    # --- 6. Check columns ---
+    print("\nColumns in original df:", df.columns.tolist())
+    print("Columns in df_with_info:", df_with_info.columns.tolist())
+    print("New columns added:", [col for col in df_with_info.columns if col not in df.columns])
+
+
     df_with_info.to_csv('data_updated_18.5.csv', index=False)
 
 
