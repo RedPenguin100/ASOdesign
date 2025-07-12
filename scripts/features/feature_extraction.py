@@ -4,7 +4,7 @@ import os
 from consts import DATA_PATH_NEW
 
 
-def load_all_features(filenames=None):
+def load_all_features(filenames=None, light=True):
     # this function loads all the features and the current data, merges all the features according to the index
     # and returns a merged df with all the features and the data
     # missing values would be considered as Nan!
@@ -19,6 +19,8 @@ def load_all_features(filenames=None):
     if not filenames:
         raise FileNotFoundError(f"No CSV files found in {feature_dir}")
 
+    if light:
+        filenames.remove('Smiles.csv')
     print(f"Loading features from: {filenames}")
 
     dfs = [pd.read_csv(os.path.join(feature_dir, f)) for f in filenames]
