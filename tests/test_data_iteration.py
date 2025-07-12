@@ -5,7 +5,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from consts import DATA_PATH
+from asodesigner.consts import DATA_PATH
 from scripts.data_genertion.consts import INHIBITION, CELL_LINE_ORGANISM, CANONICAL_GENE, SEQUENCE, SENSE_TYPE, \
     SENSE_LENGTH, SENSE_START
 from scripts.data_genertion.data_handling import get_unique_human_genes, get_gene_to_data
