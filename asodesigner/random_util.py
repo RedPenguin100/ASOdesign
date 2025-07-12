@@ -2,8 +2,6 @@ import math
 import random
 import ViennaRNA as RNA
 
-from asodesigner.util import get_gc_content
-
 
 def quasi_normal_random_int(a: int, b: int) -> int:
     mean = (a + b) / 2
@@ -44,6 +42,8 @@ def generate_random_dna(length, gc_lower=0.5, gc_upper=0.65, min_fold_energy=-1.
 
 
 if __name__ == '__main__':
+    from asodesigner.features.seq_features import get_gc_content
+
     seqs = generate_random_dna(16, attempts=10)
     print(len(seqs))
     print(len(set(seqs)))
@@ -52,4 +52,3 @@ if __name__ == '__main__':
         print(len(seq))
         print(get_gc_content(seq))
         print(RNA.fold(seq)[1])
-
