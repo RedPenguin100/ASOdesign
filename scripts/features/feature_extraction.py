@@ -1,7 +1,10 @@
 import pandas as pd
 import os
 
-def load_all_features(filenames=None):
+from consts import DATA_PATH_NEW
+
+
+def load_all_features(filenames=None, light=True):
     # this function loads all the features and the current data, merges all the features according to the index
     # and returns a merged df with all the features and the data
     # missing values would be considered as Nan!
@@ -16,6 +19,8 @@ def load_all_features(filenames=None):
     if not filenames:
         raise FileNotFoundError(f"No CSV files found in {feature_dir}")
 
+    if light:
+        filenames.remove('Smiles.csv')
     print(f"Loading features from: {filenames}")
 
     dfs = [pd.read_csv(os.path.join(feature_dir, f)) for f in filenames]
@@ -42,14 +47,28 @@ def find_project_root(target_folder='scripts'):
         current_path = parent
 
 
-def save_my_features(df, feature_name):
-    # this function receives the df of your feature(s) (with indices related to the rows please) and saves it to our feature directory
-    # to use this add - from scripts.features.feature_extraction import save_my_features
+def save_feature(df, feature_name):
     project_root = find_project_root('scripts')
     feature_dir = os.path.join(project_root, 'scripts', 'features')
     os.makedirs(feature_dir, exist_ok=True)
+    sub_df = df[['index', feature_name]]
     file_path = os.path.join(feature_dir, f'{feature_name}.csv')
-    df.to_csv(file_path, index=False)
+    sub_df.to_csv(file_path, index=False)
+
+
+def read_base_df():
+    all_data = pd.read_csv(DATA_PATH_NEW / 'data_asoptimizer_updated.11.7.csv',
+                           dtype={'index': int, 'ISIS': int, 'Target_gene': str,
+                                  'Cell_line': str, 'Density(cells_per_well)': str,
+                                  'Transfection': str, 'ASO_volume(nm)': float, 'Treatment_Period(hours)': float,
+                                  'Primer_probe_set': str, 'Sequence': str, 'Modification': str, 'Location': str,
+                                  'Chemical_Pattern': str, 'Linkage': str, 'Linage_Location' : str, 'Smiles' : str,
+                                  'Inhibition(%)' : float, 'seq_length' : int, 'Canonical Gene Name' : str,
+                                  'Cell line organism' : str, 'Transcript' : str, 'Location_in_sequence' : int,
+                                  'Location_div_by_length' : float, 'true_length_of_seq' : int, 'mod_scan' : int,
+                                  'cell_line_uniform' : str
+                                  })
+    return all_data
 
 
 if __name__ == "__main__":
