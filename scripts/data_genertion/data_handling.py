@@ -1,7 +1,8 @@
 import primer3
 from ViennaRNA import RNA
 
-from features.seq_features import palindromic_fraction, homooligo_count, hairpin_score, seq_entropy, gc_skew, at_skew, \
+from asodesigner.features.seq_features import palindromic_fraction, homooligo_count, hairpin_score, seq_entropy, \
+    gc_skew, at_skew, \
     nucleotide_diversity, stop_codon_count, get_gc_content
 import numpy as np
 from scripts.data_genertion.consts import *
@@ -149,7 +150,6 @@ def populate_features(df, features, **kwargs):
     if 'normalized_start' in features:
         df.loc[:, 'mrna_length'] = [len(kwargs['gene_to_data'][gene].full_mrna) for gene in df[CANONICAL_GENE]]
         df.loc[:, 'normalized_start'] = df[SENSE_START] / df['mrna_length']
-
 
     if 'palindromic_fraction' in features:
         df.loc[:, 'palindromic_fraction'] = [palindromic_fraction(seq, 5) for seq in df[SEQUENCE]]
