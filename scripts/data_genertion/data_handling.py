@@ -1,9 +1,9 @@
 import primer3
 from ViennaRNA import RNA
 
-from scripts.data_genertion.consts import CELL_LINE_ORGANISM, INHIBITION, CANONICAL_GENE
+from features.seq_features import palindromic_fraction, homooligo_count, hairpin_score, seq_entropy, gc_skew, at_skew, \
+    nucleotide_diversity, stop_codon_count, get_gc_content
 import numpy as np
-import pandas as pd
 from scripts.data_genertion.consts import *
 
 
@@ -52,7 +52,6 @@ def get_populated_df_with_structure_features(df, genes_u, gene_to_data):
     SENSE_TYPE = 'sense_type'
 
     found = 0
-    not_found = 0
     all_data_human_gene[SENSE_START] = np.zeros_like(all_data_human_gene[CANONICAL_GENE], dtype=int)
     all_data_human_gene[SENSE_LENGTH] = np.zeros_like(all_data_human_gene[CANONICAL_GENE], dtype=int)
     all_data_human_gene[SENSE_TYPE] = "NA"
@@ -107,6 +106,8 @@ def get_populate_fold(df, genes_u, gene_to_data, fold_variants=[(40, 15)]):
                 l = row[SENSE_LENGTH]
                 sense_start = row[SENSE_START]
                 mean_fold = get_weighted_energy(sense_start, l, step_size, energies, window_size)
+                mean_fold_end = get_weighted_energy(sense_start, l, step_size, energies, window_size)
+                mean_fold_start = get_weighted_energy(sense_start, l, step_size, energies, window_size)
                 if mean_fold > 100:
                     print("Weird: ", mean_fold)
                     print("Sense_start ", sense_start)
@@ -118,7 +119,7 @@ def get_populate_fold(df, genes_u, gene_to_data, fold_variants=[(40, 15)]):
     return all_data_human_gene_premrna_no_nan
 
 
-def populate_features(df, features):
+def populate_features(df, features, **kwargs):
     if 'self_energy' in features:
         df.loc[:, 'self_energy'] = [float(primer3.calc_homodimer(antisense).dg) for
                                     antisense in
@@ -128,3 +129,48 @@ def populate_features(df, features):
 
     if 'internal_fold' in features:
         df.loc[:, 'internal_fold'] = [RNA.fold(antisense)[1] for antisense in df[SEQUENCE]]
+
+    if 'gc_content' in features:
+        df.loc[:, 'gc_content'] = [get_gc_content(seq) for seq in df[SEQUENCE]]
+
+    if 'gc_content_5_prime_5' in features:
+        df.loc[:, 'gc_content_5_prime_5'] = [get_gc_content(sequence[-5:]) for sequence in df[SEQUENCE]]
+
+    if 'gc_content_3_prime_5' in features:
+        df.loc[:, 'gc_content_3_prime_5'] = [get_gc_content(sequence[:5]) for sequence in df[SEQUENCE]]
+
+    if 'first_nucleotide' in features:
+        df.loc[:, 'first_nucleotide'] = [sequence[0] for sequence in df[SEQUENCE]]
+    if 'second_nucleotide' in features:
+        df.loc[:, 'second_nucleotide'] = [sequence[1] for sequence in df[SEQUENCE]]
+
+    if 'mrna_length' in features:
+        df.loc[:, 'mrna_length'] = [len(kwargs['gene_to_data'][gene].full_mrna) for gene in df[CANONICAL_GENE]]
+    if 'normalized_start' in features:
+        df.loc[:, 'mrna_length'] = [len(kwargs['gene_to_data'][gene].full_mrna) for gene in df[CANONICAL_GENE]]
+        df.loc[:, 'normalized_start'] = df[SENSE_START] / df['mrna_length']
+
+
+    if 'palindromic_fraction' in features:
+        df.loc[:, 'palindromic_fraction'] = [palindromic_fraction(seq, 5) for seq in df[SEQUENCE]]
+
+    if 'homooligo_count' in features:
+        df.loc[:, 'homooligo_count'] = [homooligo_count(seq) for seq in df[SEQUENCE]]
+
+    if 'entropy' in features:
+        df.loc[:, 'entropy'] = [seq_entropy(seq) for seq in df[SEQUENCE]]
+
+    if 'hairpin_score' in features:
+        df.loc[:, 'hairpin_score'] = [hairpin_score(seq) for seq in df[SEQUENCE]]
+
+    if 'gc_skew' in features:
+        df.loc[:, 'gc_skew'] = [gc_skew(seq) for seq in df[SEQUENCE]]
+
+    if 'at_skew' in features:
+        df.loc[:, 'at_skew'] = [at_skew(seq) for seq in df[SEQUENCE]]
+
+    if 'nucleotide_diversity' in features:
+        df.loc[:, 'nucleotide_diversity'] = [nucleotide_diversity(seq) for seq in df[SEQUENCE]]
+
+    if 'stop_codon_count' in features:
+        df.loc[:, 'stop_codon_count'] = [stop_codon_count(seq) for seq in df[SEQUENCE]]

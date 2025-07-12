@@ -7,6 +7,7 @@ TREATMENT_PERIOD = 'Treatment_Period(hours)'
 CELL_LINE = 'Cell_line'
 TRANSFECTION = 'Transfection'
 DENSITY = 'Density(cells/well)'
+DENSITY_UPDATED = 'Density(cells_per_well)' # Avoiding /
 MODIFICATION = 'Modification'
 PREMRNA_FOUND = 'pre_mrna_found'
 SENSE_START = 'sense_start'

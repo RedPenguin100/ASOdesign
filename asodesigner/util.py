@@ -6,16 +6,6 @@ import numpy as np
 def get_longer_string(s1: str, s2: str) -> str:
     return s1 if len(s1) >= len(s2) else s2
 
-
-@njit
-def get_gc_content(seq: str) -> float:
-    gc_count = 0
-    for i in range(len(seq)):
-        if seq[i] in "GCgc":
-            gc_count +=1
-
-    return gc_count / len(seq)
-
 @njit
 def get_purine_content(seq: str) -> float:
     """
