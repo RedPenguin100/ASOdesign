@@ -59,7 +59,7 @@ def save_feature(df, feature_name):
 def read_base_df():
     all_data = pd.read_csv(DATA_PATH_NEW / 'data_asoptimizer_updated.11.7.csv',
                            dtype={'index': int, 'ISIS': int, 'Target_gene': str,
-                                  'Cell_line': str, 'Density(cells_per_well)': str,
+                                  'Cell_line': str, 'Density(cells_per_well)': float,
                                   'Transfection': str, 'ASO_volume(nm)': float, 'Treatment_Period(hours)': float,
                                   'Primer_probe_set': str, 'Sequence': str, 'Modification': str, 'Location': str,
                                   'Chemical_Pattern': str, 'Linkage': str, 'Linage_Location' : str, 'Smiles' : str,

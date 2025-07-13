@@ -13,7 +13,7 @@ class RNA_TABLES:
     SLH04_WOGU = 'dsm_slh04_woGU_pos'
 
 
-RNA_TABLES = [RNA_TABLES.SU95_WGU]
+RNA_TABLES = [RNA_TABLES.SU95_WGU, RNA_TABLES.SLH04_WOGU, RNA_TABLES.SU95_WOGU]
 
 
 # all_data_human_gene_premrna = all_data_human_gene_premrna.sample(frac=0.1)
@@ -23,9 +23,9 @@ RNA_TABLES = [RNA_TABLES.SU95_WGU]
 # for dsm in ['dsm_su95_rev_woGU_pos', 'dsm_su95_rev_wGU_pos', 'dsm_slh04_woGU_pos']:
 
 def populate_with_risearch_hybridization(df, genes_u, gene_to_data):
-    minimal_scores = [400, 600, 800]
+    minimal_scores = [600]
 
-    settings = list(product(RNA_TABLES, [100, 138, 150], minimal_scores, [37, 50], [True, False]))
+    settings = list(product(RNA_TABLES, [138], minimal_scores, [37], [True, False]))
     for dsm, base, score, temp, transpose in settings:
         print(f"Running {dsm} for base {base} and score {score} temp {temp} transpose {transpose}")
 
