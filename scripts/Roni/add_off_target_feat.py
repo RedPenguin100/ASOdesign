@@ -13,19 +13,28 @@ data_dir = os.path.abspath(os.path.join(script_dir, "..", "data_genertion"))
 # Load the main ASO dataset
 data_path = os.path.join(data_dir, "data_asoptimizer_updated.csv")
 may_df = pd.read_csv(data_path)
-may_df = may_df.head(6)
+may_df = may_df.head(100)
 
 # Expression files path
 expr_path = os.path.join(data_dir, "cell_line_expression")
 
 # Load each transcriptome file
-A431_df = pd.read_csv(os.path.join(expr_path, 'ACH-001328_transcriptome_top500.csv'))
-NCI_H460_df = pd.read_csv(os.path.join(expr_path, 'ACH-000463_transcriptome_top500.csv'))
-SH_SY5Y_df = pd.read_csv(os.path.join(expr_path, 'ACH-001188_transcriptome_top500.csv'))
-HeLa_df = pd.read_csv(os.path.join(expr_path, 'ACH-001086_transcriptome_top500.csv'))
-HepG2_df = pd.read_csv(os.path.join(expr_path, 'ACH-000739_transcriptome_top500.csv'))
-U_251MG_df = pd.read_csv(os.path.join(expr_path, 'ACH-000232_transcriptome_top500.csv'))
+A431_df = pd.read_csv(os.path.join(expr_path, 'ACH-001328_transcriptome.csv'))
+NCI_H460_df = pd.read_csv(os.path.join(expr_path, 'ACH-000463_transcriptome.csv'))
+SH_SY5Y_df = pd.read_csv(os.path.join(expr_path, 'ACH-001188_transcriptome.csv'))
+HeLa_df = pd.read_csv(os.path.join(expr_path, 'ACH-001086_transcriptome.csv'))
+HepG2_df = pd.read_csv(os.path.join(expr_path, 'ACH-000739_transcriptome.csv'))
+U_251MG_df = pd.read_csv(os.path.join(expr_path, 'ACH-000232_transcriptome.csv'))
 
+# ============================ Cut to top n expressed ==============================
+n = 500
+A431_df = A431_df.head(n)
+NCI_H460_df = NCI_H460_df.head(n)
+SH_SY5Y_df = SH_SY5Y_df.head(n)
+HeLa_df = HeLa_df.head(n)
+HepG2_df = HepG2_df.head(n)
+U_251MG_df = U_251MG_df.head(n)
+ # ===================================================================================
 cell_line_list = ['ACH-001328', 'ACH-000463', 'ACH-001188', 'ACH-001086', 'ACH-000739', 'ACH-000232']
 
 cell_line2df_ = {'A431':A431_df,
@@ -98,13 +107,13 @@ def get_off_target_feature(cell_line2df, ASO_df):
         result_dict = get_trigger_mfe_scores_by_risearch(
             ASO_seq,
             name_to_seq,
-            minimum_score=900,
+            minimum_score=800,
             parsing_type='2'
         )
         result_df = parse_risearch_output(result_dict)
-        print(f'001: {result_df}')
+        #print(f'001:\n {result_df}')
         result_df_agg = aggregate_off_targets(result_df)
-        print(f'002: {result_df_agg}')
+        #print(f'002:\n {result_df_agg}')
 
         # Weight by expression
         result_dict_weighted_TPM = {
@@ -115,10 +124,10 @@ def get_off_target_feature(cell_line2df, ASO_df):
             row['target']: row['energy'] * name_to_exp_norm.get(row['target'], 0)
             for _, row in result_df_agg.iterrows()
         }
-        print(result_dict_weighted_TPM)
+        #print(result_dict_weighted_TPM)
         index_score_vec_TPM[index] = sum(result_dict_weighted_TPM.values())
 
-        print(result_dict_weighted_norm)
+        #print(result_dict_weighted_norm)
         index_score_vec_norm[index] = sum(result_dict_weighted_norm.values())
 
 
@@ -126,5 +135,13 @@ def get_off_target_feature(cell_line2df, ASO_df):
 
 
 off_target_vec = get_off_target_feature(cell_line2df_, may_df)
-print(off_target_vec)
+#print(off_target_vec)
+
+off_target_feature = pd.DataFrame({
+    "off_target_score_TPM": off_target_vec[0],
+    "off_target_score_log": off_target_vec[1],
+}).reset_index().rename(columns={"index": "index"})
+
+off_target_feature.to_csv(os.path.join(data_dir, "off_target_feature_500.csv"), index=False)
+print("off_target_feature.csv saved")
 
