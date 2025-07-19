@@ -3,7 +3,7 @@ from ViennaRNA import RNA
 
 from asodesigner.features.seq_features import palindromic_fraction, homooligo_count, hairpin_score, seq_entropy, \
     gc_skew, at_skew, \
-    nucleotide_diversity, stop_codon_count, get_gc_content
+    nucleotide_diversity, stop_codon_count, get_gc_content, at_rich_region_score, poly_pyrimidine_stretch
 import numpy as np
 from scripts.data_genertion.consts import *
 
@@ -110,6 +110,7 @@ def get_populate_fold(df, genes_u, gene_to_data, fold_variants=[(40, 15)]):
                 mean_fold_end = get_weighted_energy(sense_start, l, step_size, energies, window_size)
                 mean_fold_start = get_weighted_energy(sense_start, l, step_size, energies, window_size)
                 if mean_fold > 100:
+                    print(energies)
                     print("Weird: ", mean_fold)
                     print("Sense_start ", sense_start)
                     print("Sense_length ", l)
@@ -174,3 +175,9 @@ def populate_features(df, features, **kwargs):
 
     if 'stop_codon_count' in features:
         df.loc[:, 'stop_codon_count'] = [stop_codon_count(seq) for seq in df[SEQUENCE]]
+
+    if 'at_rich_region_score' in features:
+        df.loc[:, 'at_rich_region_score'] = [at_rich_region_score(seq) for seq in df[SEQUENCE]]
+
+    if 'poly_pyrimidine_stretch' in features:
+        df.loc[:, 'poly_pyrimidine_stretch'] = [poly_pyrimidine_stretch(seq) for seq in df[SEQUENCE]]
