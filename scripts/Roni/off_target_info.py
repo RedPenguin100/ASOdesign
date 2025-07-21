@@ -1,6 +1,5 @@
 from asodesigner.fold import get_trigger_mfe_scores_by_risearch
 from scripts.Roni.off_target_functions import dna_to_rna_reverse_complement, parse_risearch_output, aggregate_off_targets
-
 import pandas as pd
 from io import StringIO
 import os
@@ -14,7 +13,7 @@ data_dir = os.path.abspath(os.path.join(script_dir, "..", "data_genertion"))
 # Load the main ASO dataset
 data_path = os.path.join(data_dir, "data_asoptimizer_updated.csv")
 may_df = pd.read_csv(data_path)
-may_df = may_df.head(100)
+may_df = may_df.head(1)
 
 # Expression files path
 expr_path = os.path.join(data_dir, "cell_line_expression")
@@ -28,7 +27,7 @@ HepG2_df = pd.read_csv(os.path.join(expr_path, 'ACH-000739_transcriptome.csv'))
 U_251MG_df = pd.read_csv(os.path.join(expr_path, 'ACH-000232_transcriptome.csv'))
 
 # ============================ Cut to top n expressed ==============================
-n = 500
+n = 5
 A431_df = A431_df.head(n)
 NCI_H460_df = NCI_H460_df.head(n)
 SH_SY5Y_df = SH_SY5Y_df.head(n)
@@ -47,9 +46,7 @@ cell_line2df_ = {'A431':A431_df,
                 'U-251MG':U_251MG_df}
 
 
-
-
-def get_off_target_feature(cell_line2df, ASO_df):
+def get_off_target_info(cell_line2df, ASO_df):
     index_score_vec_TPM = {}
     index_score_vec_norm = {}
 
@@ -92,18 +89,19 @@ def get_off_target_feature(cell_line2df, ASO_df):
             name_to_exp_TPM[curr_gene] = exp_TPM
             name_to_exp_norm[curr_gene] = exp_norm
 
-
         # Calculate mfe scores
         result_dict = get_trigger_mfe_scores_by_risearch(
             trigger,
             name_to_seq,
-            minimum_score=800,
+            minimum_score=400,
             parsing_type='2'
         )
+
+        print(f'000:\n{result_dict}\n')
         result_df = parse_risearch_output(result_dict)
-        #print(f'001:\n {result_df}')
+        print(f'001:\n{result_df}\n{result_df.columns}')
         result_df_agg = aggregate_off_targets(result_df)
-        #print(f'002:\n {result_df_agg}')
+        print(f'002:\n{result_df_agg}\n')
 
         # Weight by expression
         result_dict_weighted_TPM = {
@@ -124,7 +122,7 @@ def get_off_target_feature(cell_line2df, ASO_df):
     return [index_score_vec_TPM, index_score_vec_norm]
 
 
-off_target_vec = get_off_target_feature(cell_line2df_, may_df)
+off_target_vec = get_off_target_info(cell_line2df_, may_df)
 #print(off_target_vec)
 
 off_target_feature = pd.DataFrame({
@@ -132,6 +130,6 @@ off_target_feature = pd.DataFrame({
     "off_target_score_log": off_target_vec[1],
 }).reset_index().rename(columns={"index": "index"})
 
-off_target_feature.to_csv(os.path.join(data_dir, "off_target_feature_500.csv"), index=False)
-print("off_target_feature.csv saved")
+#off_target_feature.to_csv(os.path.join(data_dir, "off_target___.csv"), index=False)
+#print("off_target_feature.csv saved")
 
