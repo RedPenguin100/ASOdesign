@@ -13,7 +13,7 @@ data_dir = os.path.abspath(os.path.join(script_dir, "..", "data_genertion"))
 # Load the main ASO dataset
 data_path = os.path.join(data_dir, "data_asoptimizer_updated.csv")
 may_df = pd.read_csv(data_path)
-may_df = may_df.head(1)
+may_df = may_df.head(10)
 
 # Expression files path
 expr_path = os.path.join(data_dir, "cell_line_expression")
@@ -27,7 +27,7 @@ HepG2_df = pd.read_csv(os.path.join(expr_path, 'ACH-000739_transcriptome.csv'))
 U_251MG_df = pd.read_csv(os.path.join(expr_path, 'ACH-000232_transcriptome.csv'))
 
 # ============================ Cut to top n expressed ==============================
-n = 5
+n = 500
 A431_df = A431_df.head(n)
 NCI_H460_df = NCI_H460_df.head(n)
 SH_SY5Y_df = SH_SY5Y_df.head(n)
@@ -47,8 +47,7 @@ cell_line2df_ = {'A431':A431_df,
 
 
 def get_off_target_info(cell_line2df, ASO_df):
-    index_score_vec_TPM = {}
-    index_score_vec_norm = {}
+    index_info_vec = {}
 
     for idx, row in ASO_df.iterrows():
 
@@ -66,6 +65,7 @@ def get_off_target_info(cell_line2df, ASO_df):
         name_to_seq = {}
         name_to_exp_TPM = {}
         name_to_exp_norm = {}
+        #name_to_transcript_id = {}
 
         for _, gene_row in curr_df.iterrows():
             curr_gene = gene_row['Gene'].split()[0]
@@ -84,51 +84,46 @@ def get_off_target_info(cell_line2df, ASO_df):
             mRNA_seq = mut_seq if not pd.isna(mut_seq) else og_seq
             exp_TPM = gene_row['expression_TPM']
             exp_norm = gene_row['expression_norm']
+            transcript_id = gene_row['Transcript_ID']
 
             name_to_seq[curr_gene] = mRNA_seq
             name_to_exp_TPM[curr_gene] = exp_TPM
             name_to_exp_norm[curr_gene] = exp_norm
+            #name_to_transcript_id[curr_gene] = transcript_id
 
         # Calculate mfe scores
         result_dict = get_trigger_mfe_scores_by_risearch(
             trigger,
             name_to_seq,
-            minimum_score=400,
+            minimum_score=1000,
             parsing_type='2'
         )
 
         print(f'000:\n{result_dict}\n')
+
         result_df = parse_risearch_output(result_dict)
+
+        top_score_df = result_df.loc[result_df.groupby('target')['score'].idxmax()]
+        top_score_df = top_score_df.sort_values(by='score', ascending=False).reset_index(drop=True)
         print(f'001:\n{result_df}\n{result_df.columns}')
-        result_df_agg = aggregate_off_targets(result_df)
-        print(f'002:\n{result_df_agg}\n')
+        print(f'001:\n{top_score_df}\n{top_score_df.columns}')
 
-        # Weight by expression
-        result_dict_weighted_TPM = {
-            row['target']: row['energy'] * name_to_exp_TPM.get(row['target'], 0)
-            for _, row in result_df_agg.iterrows()
-        }
-        result_dict_weighted_norm = {
-            row['target']: row['energy'] * name_to_exp_norm.get(row['target'], 0)
-            for _, row in result_df_agg.iterrows()
-        }
-        #print(result_dict_weighted_TPM)
-        index_score_vec_TPM[index] = sum(result_dict_weighted_TPM.values())
+        top_score_df['energy_weighted_TPM'] = top_score_df['energy'] * top_score_df['target'].map(name_to_exp_TPM)
+        top_score_df['energy_weighted_norm'] = top_score_df['energy'] * top_score_df['target'].map(name_to_exp_norm)
 
-        #print(result_dict_weighted_norm)
-        index_score_vec_norm[index] = sum(result_dict_weighted_norm.values())
+        print(f'002:\n{top_score_df}\n{top_score_df.columns}')
+        index_info_vec[index] = top_score_df
 
 
-    return [index_score_vec_TPM, index_score_vec_norm]
+    return index_info_vec
 
 
 off_target_vec = get_off_target_info(cell_line2df_, may_df)
-#print(off_target_vec)
+print(off_target_vec)
 
-off_target_feature = pd.DataFrame({
-    "off_target_score_TPM": off_target_vec[0],
-    "off_target_score_log": off_target_vec[1],
-}).reset_index().rename(columns={"index": "index"})
+# off_target_feature = pd.DataFrame({
+#     "off_target_score_TPM": off_target_vec[0],
+# }).reset_index().rename(columns={"index": "index"})
 
 #off_target_feature.to_csv(os.path.join(data_dir, "off_target___.csv"), index=False)
 #print("off_target_feature.csv saved")
