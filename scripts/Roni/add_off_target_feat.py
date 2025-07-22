@@ -14,7 +14,7 @@ data_dir = os.path.abspath(os.path.join(script_dir, "..", "data_genertion"))
 # Load the main ASO dataset
 data_path = os.path.join(data_dir, "data_asoptimizer_updated.csv")
 may_df = pd.read_csv(data_path)
-may_df = may_df.head(100)
+#may_df = may_df.head(100)
 
 # Expression files path
 expr_path = os.path.join(data_dir, "cell_line_expression")
@@ -97,7 +97,7 @@ def get_off_target_feature(cell_line2df, ASO_df):
         result_dict = get_trigger_mfe_scores_by_risearch(
             trigger,
             name_to_seq,
-            minimum_score=800,
+            minimum_score=1200,
             parsing_type='2'
         )
         result_df = parse_risearch_output(result_dict)

@@ -3,6 +3,7 @@ from scripts.Roni.off_target_functions import dna_to_rna_reverse_complement, par
 import pandas as pd
 from io import StringIO
 import os
+import pickle
 
 
 
@@ -13,7 +14,7 @@ data_dir = os.path.abspath(os.path.join(script_dir, "..", "data_genertion"))
 # Load the main ASO dataset
 data_path = os.path.join(data_dir, "data_asoptimizer_updated.csv")
 may_df = pd.read_csv(data_path)
-may_df = may_df.head(10)
+#may_df = may_df.head(10)
 
 # Expression files path
 expr_path = os.path.join(data_dir, "cell_line_expression")
@@ -99,28 +100,29 @@ def get_off_target_info(cell_line2df, ASO_df):
             parsing_type='2'
         )
 
-        print(f'000:\n{result_dict}\n')
+        #print(f'000:\n{result_dict}\n')
 
         result_df = parse_risearch_output(result_dict)
 
         top_score_df = result_df.loc[result_df.groupby('target')['score'].idxmax()]
         top_score_df = top_score_df.sort_values(by='score', ascending=False).reset_index(drop=True)
-        print(f'001:\n{result_df}\n{result_df.columns}')
-        print(f'001:\n{top_score_df}\n{top_score_df.columns}')
+        #print(f'001:\n{result_df}\n{result_df.columns}')
+        #print(f'001:\n{top_score_df}\n{top_score_df.columns}')
 
         top_score_df['energy_weighted_TPM'] = top_score_df['energy'] * top_score_df['target'].map(name_to_exp_TPM)
         top_score_df['energy_weighted_norm'] = top_score_df['energy'] * top_score_df['target'].map(name_to_exp_norm)
 
-        print(f'002:\n{top_score_df}\n{top_score_df.columns}')
+        #print(f'002:\n{top_score_df}\n{top_score_df.columns}')
         index_info_vec[index] = top_score_df
 
 
     return index_info_vec
 
 
-off_target_vec = get_off_target_info(cell_line2df_, may_df)
-print(off_target_vec)
-
+off_target_info_vec = get_off_target_info(cell_line2df_, may_df)
+with open('off_target_info_mRNA.pkl', 'wb') as f:
+    pickle.dump(off_target_info_vec, f)
+print("off_target_info_mRNA.pkl saved")
 # off_target_feature = pd.DataFrame({
 #     "off_target_score_TPM": off_target_vec[0],
 # }).reset_index().rename(columns={"index": "index"})
