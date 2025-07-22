@@ -49,11 +49,13 @@ def get_populated_df_with_structure_features(df, genes_u, gene_to_data):
     all_data_human_no_nan = all_data_human.dropna(subset=[INHIBITION]).copy()
     all_data_human_gene = all_data_human_no_nan[all_data_human_no_nan[CANONICAL_GENE].isin(genes_u)].copy()
     SENSE_START = 'sense_start'
+    SENSE_START_FROM_END = 'sense_start_from_end'
     SENSE_LENGTH = 'sense_length'
     SENSE_TYPE = 'sense_type'
 
     found = 0
     all_data_human_gene[SENSE_START] = np.zeros_like(all_data_human_gene[CANONICAL_GENE], dtype=int)
+    all_data_human_gene[SENSE_START_FROM_END] = np.zeros_like(all_data_human_gene[CANONICAL_GENE], dtype=int)
     all_data_human_gene[SENSE_LENGTH] = np.zeros_like(all_data_human_gene[CANONICAL_GENE], dtype=int)
     all_data_human_gene[SENSE_TYPE] = "NA"
     for index, row in all_data_human_gene.iterrows():
@@ -64,9 +66,10 @@ def get_populated_df_with_structure_features(df, genes_u, gene_to_data):
         sense = get_antisense(antisense)
         idx = pre_mrna.find(sense)
         all_data_human_gene.loc[index, SENSE_START] = idx
+        all_data_human_gene.loc[index, SENSE_START_FROM_END] = np.abs(locus_info.exon_indices[-1][1] - locus_info.cds_start - idx)
         all_data_human_gene.loc[index, SENSE_LENGTH] = len(antisense)
         if idx != -1:
-            genome_corrected_index = idx + locus_info.exon_indices[0][0]
+            genome_corrected_index = idx + locus_info.cds_start
             found = False
             for exon_indices in locus_info.exon_indices:
                 # print(exon[0], exon[1])

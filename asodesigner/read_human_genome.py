@@ -54,9 +54,9 @@ def get_locus_to_data_dict(create_db=False, include_introns=False, gene_subset=N
     locus_to_strand = dict()
 
     if include_introns:
-        feature_types = ('exon', 'intron', 'gene')
+        feature_types = ('exon', 'intron', 'gene', 'stop_codon')
     else:
-        feature_types = ('exon', 'gene')
+        feature_types = ('exon', 'gene', 'stop_codon')
 
     for feature in db.features_of_type(feature_types, order_by='start'):
         chrom = feature.seqid
@@ -116,15 +116,14 @@ def get_locus_to_data_dict(create_db=False, include_introns=False, gene_subset=N
                 seq = seq.reverse_complement()
             seq = seq.upper()
 
+            locus_to_strand[locus_tag] = gene.strand
+
             if locus_tag not in locus_to_data:
                 locus_info = LocusInfo()
-                locus_info.introns = []
-                locus_info.exons = []
                 locus_info.cds_start = gene.start - 1
                 locus_info.cds_end = gene.end
                 locus_info.full_mrna = seq
                 locus_info.strand = gene.strand
-                locus_to_strand[locus_tag] = gene.strand
 
                 locus_to_data[locus_tag] = locus_info
 
@@ -138,6 +137,14 @@ def get_locus_to_data_dict(create_db=False, include_introns=False, gene_subset=N
 
         elif feature.featuretype == 'UTR':
             pass
+        elif feature.featuretype == 'stop_codon':
+            if locus_tag not in locus_to_data:
+                locus_info = LocusInfo()
+                locus_to_data[locus_tag] = locus_info
+            else:
+                locus_info = locus_to_data[locus_tag]
+
+            locus_info.stop_codons.append((feature.start, feature.end))
         else:
             print("Feature type: ", feature.featuretype)
 
@@ -160,14 +167,37 @@ if __name__ == '__main__':
         gene_to_data = get_locus_to_data_dict(include_introns=True)
     print(f"Time to read full human: {t.elapsed_time}s")
 
-    with Timer() as t:
-        i = 0
-        for gene in gene_to_data.items():
-            if len(gene[1].exons) == 0:
-                print("Weird gene, ", gene[0])
-            else:
-                i += len(gene[1].exons[0])
-            continue
-    print(f"Iterate took: {t.elapsed_time}s, i={i}")
+    # with Timer() as t:
+    #     i = 0
+    #     for gene in gene_to_data.items():
+    #         if len(gene[1].exons) == 0:
+    #             print("Weird gene, ", gene[0])
+    #         else:
+    #             i += len(gene[1].exons[0])
+    #         continue
+    # print(f"Iterate took: {t.elapsed_time}s, i={i}")
     # print(gene_to_data)
     # print(len(gene_to_data))
+
+    genes_u = ['HIF1A', 'APOL1', 'YAP1', 'SOD1', 'SNCA', 'IRF4', 'KRAS', 'KLKB1', 'SNHG14', 'DGAT2', 'IRF5',
+               'HTRA1', 'MYH7', 'MALAT1', 'HSD17B13']
+    for gene in genes_u:
+        locus_info = gene_to_data[gene]
+        print(gene)
+        print(len(locus_info.stop_codons))
+
+
+
+    import pickle
+    from asodesigner.consts import CACHE_DIR
+
+
+    cache_path = CACHE_DIR / 'gene_to_data_simple_cache.pickle'
+    # if not cache_path.exists():
+    # if True:
+    #     gene_to_data = get_locus_to_data_dict(include_introns=True, gene_subset=genes_u)
+    #     with open(cache_path, 'wb') as f:
+    #         pickle.dump(gene_to_data, f)
+    # else:
+    #     with open(cache_path, 'rb') as f:
+    #         gene_to_data = pickle.load(f)

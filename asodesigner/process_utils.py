@@ -26,6 +26,7 @@ class LocusInfo:
         self.introns = []
         self.exon_indices = []
         self.intron_indices = []
+        self.stop_codons = []
         self.five_prime_utr = ""
         self.three_prime_utr = ""
         self.exon_concat = None
