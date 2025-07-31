@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from off_target_functions import dna_to_rna_reverse_complement, normalize_chrom
+from off_target_functions import dna_to_rna_reverse_complement, normalize_chrom, name2accession
 import pickle
 
 # Get the directory of the current script
@@ -17,6 +17,10 @@ cell_line2dataII = {
     "ACH-000739": [os.path.join(DATA_DIR, "ACH-000739_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-000739_mutations.csv")],
     "ACH-000232": [os.path.join(DATA_DIR, "ACH-000232_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-000232_mutations.csv")]
 }
+
+# cell_line2dataII = {
+#     "ACH-000232": [os.path.join(DATA_DIR, "ACH-000232_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-000232_mutations.csv")]
+# }
 
 def all_premRNA_sequences(cell_line_dict, genome_pkl, annotation_pkl):
     with open(annotation_pkl, 'rb') as f:
@@ -50,8 +54,12 @@ def all_premRNA_sequences(cell_line_dict, genome_pkl, annotation_pkl):
                 start = transcript_info["start"]
                 end = transcript_info["end"]
 
+                if chrom not in name2accession:
+                    print(f"Skipping transcript {transcript_id_full}: chromosome {chrom} not in accession map.")
+                    continue
+                norm_chrom = name2accession[chrom]
                 try:
-                    seq = fasta_dict[chrom][start - 1:end]  # extract using 0-based indexing
+                    seq = fasta_dict[norm_chrom][start - 1:end]  # extract using 0-based indexing
                     if strand == "-":
                         seq = dna_to_rna_reverse_complement(seq)
                     else:
@@ -70,7 +78,68 @@ def all_premRNA_sequences(cell_line_dict, genome_pkl, annotation_pkl):
 
     return all_results
 
+def process_and_save_completed_seqs(cell_line_dict, genome_pkl, annotation_pkl):
+    # Assume dna_to_rna_reverse_complement is already imported
 
-genome_path = '/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/_whole_genomic_sequence.pkl'
+    with open(annotation_pkl, 'rb') as f:
+        gtf_dict = pickle.load(f)
+    print('✅ GTF annotations loaded.')
+
+    with open(genome_pkl, 'rb') as f:
+        fasta_dict = pickle.load(f)
+    print('✅ Genome FASTA loaded.')
+
+    chrom_label = os.path.splitext(os.path.basename(genome_pkl))[0]
+
+    for cell_line, (exp_path, _) in cell_line_dict.items():
+        print(f"\n🔄 Processing {cell_line}...")
+
+        df = pd.read_csv(exp_path)
+        missing_df = df[df["Original Transcript Sequence"].isna()].copy()
+
+        if missing_df.empty:
+            print(f"✅ No missing sequences in {cell_line}. Skipping.")
+            continue
+
+        filled_rows = []
+
+        for idx, row in missing_df.iterrows():
+            transcript_id_full = row["Transcript_ID"]
+            transcript_id = transcript_id_full.split('.')[0]
+
+            info = gtf_dict.get(transcript_id_full) or gtf_dict.get(transcript_id)
+            if not info:
+                continue
+
+            chrom = info["chrom"]
+            if chrom not in fasta_dict:
+                continue
+
+            strand = info["strand"]
+            start = info["start"]
+            end = info["end"]
+
+            try:
+                seq = fasta_dict[chrom][start - 1:end]
+                if strand == "-":
+                    seq = dna_to_rna_reverse_complement(seq)
+                else:
+                    seq = seq.replace("T", "U")
+                row["Original Transcript Sequence"] = seq
+                filled_rows.append(row)
+            except Exception as e:
+                print(f"⚠️ Error filling {transcript_id_full}: {e}")
+
+        if filled_rows:
+            filled_df = pd.DataFrame(filled_rows)
+            out_path = exp_path.replace(".csv", f".{chrom_label}.premRNA.completed_rest.csv")
+            filled_df.to_csv(out_path, index=False)
+            print(f"✅ Saved {len(filled_df)} filled rows to {out_path}")
+        else:
+            print(f"ℹ️ No rows filled for {cell_line} from {chrom_label}.")
+
+
+genome_path = '/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/chr_M_rest.pkl'
 annotation_path = '/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/_gtf_annotations.pkl'
-all_premRNA_sequences(cell_line2dataII, genome_path, annotation_path)
+# all_premRNA_sequences(cell_line2dataII, genome_path, annotation_path)
+#process_and_save_completed_seqs(cell_line2dataII, genome_path, annotation_path)

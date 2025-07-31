@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from off_target_functions import dna_to_rna_reverse_complement, normalize_chrom
+from off_target_functions import dna_to_rna_reverse_complement, normalize_chrom, name2accession
 import pickle
 
 # Get the directory of the current script
@@ -148,7 +148,12 @@ def final_func_premrna(cell_line_dict, genome_pkl, annotation_pkl):
             start = transcript_info["start"]
             end = transcript_info["end"]
 
-            norm_chrom = normalize_chrom(chrom)
+            #norm_chrom = normalize_chrom(chrom)
+            if chrom not in name2accession:
+                original_seqs.append(None)
+                print(f"Skipping transcript {transcript_id_full}: chromosome {chrom} not in accession map.")
+                continue
+            norm_chrom = name2accession[chrom]
             try:
                 seq = fasta_dict[norm_chrom][start - 1:end]  # extract using 0-based indexing
                 if strand == "-":
@@ -175,8 +180,8 @@ def final_func_premrna(cell_line_dict, genome_pkl, annotation_pkl):
     return all_results
 
 
-genome_path = '/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/_full_genomic_sequence.pkl'
-annotation_path = '/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/_NEW_gtf_annotations.pkl'
+genome_path = '/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/chr_1_4.pkl'
+annotation_path = '/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/_gtf_annotations.pkl'
 final_func_premrna(cell_line2data, genome_path, annotation_path)
 
 print('test')
