@@ -28,6 +28,18 @@ path_2 = "/home/oni/iGEM/data/"
 # #parse_fasta(path_2+'Homo_sapiens.GRCh38.dna_sm.toplevel.fa', path_1+'_full_genomic_sequence.pkl')
 # print('worked')#test
 # print()
+with open(path_1+'_gtf_annotations.pkl', 'rb') as f:
+     gtf_dict = pickle.load(f)
 
+lennn = gtf_dict['ENST00000396024.7']['end'] - gtf_dict['ENST00000396024.7']['start']
+print(f'real gene len is {lennn+1}')
 df = pd.read_csv(path_1+'ACH-000232_transcriptome_premRNA.merged.csv')
-print(df.shape)
+row = df[df['Transcript_ID'] == 'ENST00000396024.7']
+
+# Extract the sequence
+sequence = row['Original Transcript Sequence'].values[0]
+
+# Optionally print its length
+print(f"Sequence length: {len(sequence)}")
+
+print()
