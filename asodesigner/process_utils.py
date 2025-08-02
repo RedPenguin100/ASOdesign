@@ -34,6 +34,9 @@ class LocusInfo:
         self.cds_start = None
         self.cds_end = None
         self.strand = None
+        self.gene_type = None
+        self.utr_indices = []
+
 
 def get_simplified_fasta_dict(fasta_dict):
     simplified_fasta_dict = dict()
@@ -155,7 +158,7 @@ def run_off_target_wc_analysis(experiment: Experiment, fasta_dict=None, simplifi
             tasks_cached += 1
 
     print(f"Skipping {tasks_cached} tasks that were found in cache.")
-    results = parallelize_function(process_watson_crick_differences, tasks)
+    results = parallelize_function(process_watson_crick_differences, tasks, max_threads=8)
 
     results_dict = wc_results_to_dict(results, experiment)
     update_loaded_data(loaded_data, results_dict)
@@ -164,9 +167,9 @@ def run_off_target_wc_analysis(experiment: Experiment, fasta_dict=None, simplifi
     full_results = []
     for idx, l, antisense in experiment.get_aso_antisense_iterator():
         loaded_result = loaded_data[antisense]
-        full_results.append((idx, l, loaded_result[0], loaded_result[1], loaded_result[2], loaded_result[3]))
+        full_results.append((antisense, idx, l, loaded_result[0], loaded_result[1], loaded_result[2], loaded_result[3]))
 
-    columns = [SENSE_START, SENSE_LENGTH, '0_matches', '1_matches', '2_matches', '3_matches']
+    columns = ["SEQUENCE", SENSE_START, SENSE_LENGTH, '0_matches', '1_matches', '2_matches', '3_matches']
     df = pd.DataFrame(full_results, columns=columns)
     df = df.sort_values(by=['sense_start', 'sense_length'])
 
