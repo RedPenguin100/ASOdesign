@@ -49,12 +49,20 @@ def get_populated_df_with_structure_features(df, genes_u, gene_to_data):
     all_data_human_no_nan = all_data_human.dropna(subset=[INHIBITION]).copy()
     all_data_human_gene = all_data_human_no_nan[all_data_human_no_nan[CANONICAL_GENE].isin(genes_u)].copy()
     SENSE_START = 'sense_start'
+    SENSE_START_FROM_END = 'sense_start_from_end'
     SENSE_LENGTH = 'sense_length'
     SENSE_TYPE = 'sense_type'
+    SENSE_EXON = 'sense_exon'
+    SENSE_INTRON = 'sense_intron'
+    SENSE_UTR = 'sense_utr'
 
     found = 0
     all_data_human_gene[SENSE_START] = np.zeros_like(all_data_human_gene[CANONICAL_GENE], dtype=int)
+    all_data_human_gene[SENSE_START_FROM_END] = np.zeros_like(all_data_human_gene[CANONICAL_GENE], dtype=int)
     all_data_human_gene[SENSE_LENGTH] = np.zeros_like(all_data_human_gene[CANONICAL_GENE], dtype=int)
+    all_data_human_gene[SENSE_EXON] = np.zeros_like(all_data_human_gene[CANONICAL_GENE], dtype=int)
+    all_data_human_gene[SENSE_INTRON] = np.zeros_like(all_data_human_gene[CANONICAL_GENE], dtype=int)
+    all_data_human_gene[SENSE_UTR] = np.zeros_like(all_data_human_gene[CANONICAL_GENE], dtype=int)
     all_data_human_gene[SENSE_TYPE] = "NA"
     for index, row in all_data_human_gene.iterrows():
         gene_name = row[CANONICAL_GENE]
@@ -64,16 +72,32 @@ def get_populated_df_with_structure_features(df, genes_u, gene_to_data):
         sense = get_antisense(antisense)
         idx = pre_mrna.find(sense)
         all_data_human_gene.loc[index, SENSE_START] = idx
+        all_data_human_gene.loc[index, SENSE_START_FROM_END] = np.abs(locus_info.exon_indices[-1][1] - locus_info.cds_start - idx)
         all_data_human_gene.loc[index, SENSE_LENGTH] = len(antisense)
         if idx != -1:
-            genome_corrected_index = idx + locus_info.exon_indices[0][0]
+            genome_corrected_index = idx + locus_info.cds_start
             found = False
             for exon_indices in locus_info.exon_indices:
                 # print(exon[0], exon[1])
                 if exon_indices[0] <= genome_corrected_index <= exon_indices[1]:
                     all_data_human_gene.loc[index, SENSE_TYPE] = 'exon'
+                    all_data_human_gene.loc[index, SENSE_EXON] = 1
                     found = True
                     break
+            for intron_indices in locus_info.intron_indices:
+                # print(exon[0], exon[1])
+                if intron_indices[0] <= genome_corrected_index <= intron_indices[1]:
+                    all_data_human_gene.loc[index, SENSE_TYPE] = 'intron'
+                    all_data_human_gene.loc[index, SENSE_INTRON] = 1
+                    found = True
+                    break
+            for i, utr_indices in enumerate(locus_info.utr_indices):
+                    if utr_indices[0] <= genome_corrected_index <= utr_indices[1]:
+                        all_data_human_gene.loc[index, SENSE_TYPE] = 'utr'
+                        all_data_human_gene.loc[index, SENSE_UTR] = 1
+
+                        found = True
+                        break
         if not found:
             all_data_human_gene.loc[index, SENSE_TYPE] = 'intron'
     return all_data_human_gene

@@ -130,8 +130,7 @@ def generate_scrambled(target_seq):
     return df
 
 
-def generate_scrambled_permutation(target_seq: str):
-    l_values = [16, 17, 18, 19, 20, 21]
+def generate_scrambled_permutation(target_seq: str, l_values=[16,17,18,19,20,21]):
     parsing_type = '2'
 
     aso_to_scores = dict()
