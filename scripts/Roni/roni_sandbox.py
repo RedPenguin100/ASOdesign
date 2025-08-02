@@ -30,15 +30,9 @@ path_2 = "/home/oni/ASOdesign/scripts/Roni/"
 # print()
 with open(path_1+'_gtf_annotations.pkl', 'rb') as f:
     gtf_dict = pickle.load(f)
-print(gtf_dict['ENST00000306897.9']) # NONE??
-print(gtf_dict['ENST00000313056.10'])
-print(gtf_dict['ENST00000591998.6'])
-print(gtf_dict['ENST00000453153.7'])
-print(gtf_dict['ENST00000373345.9'])
-print(gtf_dict['ENST00000331573.8'])
-print(gtf_dict['ENST00000216181.11'])
-print(gtf_dict['ENST00000396077.8'])
-print(gtf_dict['ENST00000637812.2'])
+print(gtf_dict['ENST00000394323.3']) # NONE??
+print(gtf_dict['ENST00000298542.9'])
+
 #
 # lennn = gtf_dict['ENST00000396024.7']['end'] - gtf_dict['ENST00000396024.7']['start']
 # print(f'real gene len is {lennn+1}')
