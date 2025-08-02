@@ -1,4 +1,5 @@
 from asodesigner.fold import get_trigger_mfe_scores_by_risearch
+from scripts.Roni.off_target_functions import dna_to_rna_reverse_complement, parse_risearch_output, aggregate_off_targets
 
 import pandas as pd
 from io import StringIO
@@ -13,7 +14,7 @@ data_dir = os.path.abspath(os.path.join(script_dir, "..", "data_genertion"))
 # Load the main ASO dataset
 data_path = os.path.join(data_dir, "data_asoptimizer_updated.csv")
 may_df = pd.read_csv(data_path)
-may_df = may_df.head(100)
+#may_df = may_df.head(100)
 
 # Expression files path
 expr_path = os.path.join(data_dir, "cell_line_expression")
@@ -46,18 +47,6 @@ cell_line2df_ = {'A431':A431_df,
                 'U-251MG':U_251MG_df}
 
 
-def parse_risearch_output(output_str: str) -> pd.DataFrame:
-    columns = ["trigger", "trigger_start", "trigger_end", "target", "target_start", "target_end", "score", "energy"]
-    df = pd.read_csv(StringIO(output_str.strip()), sep="\t", header=None, names=columns)
-    return df
-
-def aggregate_off_targets(df: pd.DataFrame) -> pd.DataFrame:
-    # Aggregate: sum score (if it's hybridization hits) and take minimum (strongest) energy
-    grouped = df.groupby("target").agg({
-        "score": "sum",
-        "energy": "min"
-    }).reset_index()
-    return grouped
 
 
 def get_off_target_feature(cell_line2df, ASO_df):
@@ -69,6 +58,7 @@ def get_off_target_feature(cell_line2df, ASO_df):
         index = row['index']
         cell_line = row['Cell_line']
         ASO_seq = row['Sequence']
+        trigger = dna_to_rna_reverse_complement(ASO_seq)
         target_gene = row['Canonical Gene Name']
 
         if cell_line not in cell_line2df:
@@ -105,9 +95,9 @@ def get_off_target_feature(cell_line2df, ASO_df):
 
         # Calculate mfe scores
         result_dict = get_trigger_mfe_scores_by_risearch(
-            ASO_seq,
+            trigger,
             name_to_seq,
-            minimum_score=800,
+            minimum_score=1200,
             parsing_type='2'
         )
         result_df = parse_risearch_output(result_dict)

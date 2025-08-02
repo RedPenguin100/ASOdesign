@@ -117,6 +117,65 @@ def prepare_gtf_dataframe(gtf_file):
     return df
 
 
+# def find_shift(tid_dict, mut_idx):
+#     mut_idx = int(mut_idx)
+#     if mut_idx <= 0:
+#         print(f"Warning: mut_idx must be 1-based (>= 1), got {mut_idx}")
+#         return None
+#
+#     accu_len = 0
+#     cds_list = tid_dict['cds']
+#
+#     for s, e in cds_list:
+#         seg_len = e - s + 1
+#         if accu_len + seg_len >= mut_idx:
+#             offset = mut_idx - accu_len  # 0-based offset
+#             genomic_pos = s + offset
+#             shift = genomic_pos - tid_dict['start'] - mut_idx
+#             return shift
+#         accu_len += seg_len
+#
+#     print(f"Warning: mut_idx {mut_idx} is out of bounds for total CDS length.")
+#     return None
+
+
+def find_shift(tid_dict, mut_idx):
+    mut_idx = int(mut_idx)
+    if mut_idx <= 0:
+        print(f"Warning: mut_idx must be 1-based (>= 1), got {mut_idx}")
+        return None
+
+    cds_list = tid_dict['cds']
+    strand = tid_dict['strand']
+    start = tid_dict['start']
+    end = tid_dict['end']
+
+    # For minus strand, reverse the CDS list and adjust the order
+    if strand == '-':
+        cds_list = sorted(cds_list, reverse=True)
+
+    accu_len = 0
+    for s, e in cds_list:
+        seg_len = e - s + 1
+        if accu_len + seg_len >= mut_idx:
+            offset = mut_idx - accu_len  # offset into this CDS segment
+
+            if strand == '+':
+                genomic_pos = s + offset
+                shift = genomic_pos - start - mut_idx
+
+            else:  # strand == '-'
+                genomic_pos = e - offset
+                shift = genomic_pos - start - mut_idx
+
+            return shift
+
+        accu_len += seg_len
+
+    print(f"Warning: mut_idx {mut_idx} is out of bounds for total CDS length.")
+    return None
+
+
 def get_distance_to_start_codon_from_df(df, transcript_id):
     """
     Compute CDS start position (in transcript/mRNA coordinates) by flattening exons and locating CDS start.
@@ -176,9 +235,9 @@ def mutation_dict(mut_row):
             start, end = match.span()
             location = mutation[start:end]
             from_nt, to_nt = mutation[end:].split('>')
-            result = {'id': transcript_id, 'loc': location, 'ref': from_nt, 'alt': to_nt, 'type': mut_row['VariantType']}
+            result = {'id': transcript_id, 'start': location, 'end': location, 'ref': from_nt, 'alt': to_nt, 'type': mut_row['VariantType']}
         else:
-            result = {'id': transcript_id, 'loc': None, 'ref': None, 'alt': None, 'type': None}
+            result = {'id': transcript_id, 'start': None, 'end': None, 'ref': None, 'alt': None, 'type': None}
 
     elif mut_row['VariantType'] == 'deletion':
         numbers = re.findall(r'\d+', mutation)
@@ -251,7 +310,7 @@ def mutate(mut_dict, shift, sequence):
 
         if mut_dict['type'] == 'SNV':
 
-            loc = int(mut_dict['loc']) + shift - 1
+            loc = int(mut_dict['start']) + shift - 1
             ref = mut_dict['ref']
             alt = mut_dict['alt']
 
@@ -260,6 +319,7 @@ def mutate(mut_dict, shift, sequence):
 
             else:
                 mut_seq = 'mismatch'
+                print(f'mismatch at {loc}, expected {ref}, got {mut_seq[loc]}')
 
         elif mut_dict['type'] == 'deletion':
 
@@ -375,11 +435,11 @@ celline_list = ['ACH-001328',
                 'ACH-000232',
                 ]
 
-for line in celline_list:
-    final_func(
-        'Homo_sapiens.GRCh38.cdna.all.fa',
-        'OmicsExpressionProteinCodingGenesTPMLogp1.csv',
-        'OmicsSomaticMutations.csv',
-        'gencode.v48.chr_patch_hapl_scaff.annotation.gtf',
-        line, 500
-    )
+# for line in celline_list:
+#     final_func(
+#         'Homo_sapiens.GRCh38.cdna.all.fa',
+#         'OmicsExpressionProteinCodingGenesTPMLogp1.csv',
+#         'OmicsSomaticMutations.csv',
+#         'gencode.v48.chr_patch_hapl_scaff.annotation.gtf',
+#         line, 500
+#     )
