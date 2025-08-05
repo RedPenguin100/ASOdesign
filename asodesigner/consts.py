@@ -6,6 +6,7 @@ PROJECT_PATH = Path(os.path.dirname(os.path.dirname(__file__)))
 TEST_PATH = PROJECT_PATH
 
 DATA_PATH = PROJECT_PATH / 'data'
+DATA_PATH_NEW = PROJECT_PATH / 'scripts' / 'data_genertion' # TODO: fix typo
 
 GFP1_PATH = DATA_PATH / 'gfp1_seq.txt'
 GFP_FIRST_EXP_FASTA = DATA_PATH / 'GFP_first_exp.fasta'

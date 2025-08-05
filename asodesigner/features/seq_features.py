@@ -50,10 +50,9 @@ def _is_palindrome(seq: str) -> bool:
 @njit
 def palindromic_fraction(seq: str, l: int) -> float:
     count = 0
-    if ~l % 2:
-        for n in range(len(seq) - l + 1):
-            curr_seq = seq[n:n + l]
-            count += _is_palindrome(curr_seq)
+    for n in range(len(seq) - l + 1):
+        curr_seq = seq[n:n + l]
+        count += _is_palindrome(curr_seq)
     return count / len(seq)
 
 
@@ -134,6 +133,15 @@ def gc_skew(seq: str) -> float:
     if G_counts + C_counts == 0:
         return  0.0
     return (G_counts - C_counts) / (G_counts + C_counts)
+
+@njit
+def get_gc_content(seq: str) -> float:
+    gc_count = 0
+    for i in range(len(seq)):
+        if seq[i] in "GCgc":
+            gc_count +=1
+
+    return gc_count / len(seq)
 
 def gc_content_3prime_end(aso_sequence: str, window: int = 5) -> float:
     """Calculate the GC content at the 3' end of the ASO sequence."""
