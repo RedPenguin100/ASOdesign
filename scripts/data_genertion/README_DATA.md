@@ -6,28 +6,35 @@ oligonucleotides through deep learning for IDO1 gene regulation. Mol Ther Nuclei
 2024 Apr 6;35(2):102186. doi: 10.1016/j.omtn.2024.102186. PMID: 38706632; PMCID: PMC11066473.
 
 ## Latest version of data
-data_updated_inhibition.csv
+data_asoptimizer_05_08.csv
 
 ## NEW UPDATE FOR ALL CSV's
-1. A new column was added to each version of the data - 'index'. Each row has a unique index to keep order
+A new column was added to each version of the data - 'index'. Each row has a unique index to keep order
 of data and further features. Please make sure to run your scripts again with the indices to ensure
 all data is appropriately saved and organized.
-2. A new column was added to combine cell line A431 and A-431 - 'cell_line_uniform'. For the rest of the
-cell lines, it is the same in the new column as in 'Cell_Line'.
 
 ## Added this version
-1. Column 'corrected_inhibition' - average of inhibition for duplicated rows that has the same values 
-for all column except inhibition and index.
-
-2. Column 'mutual_index' - for duplicated rows, a mutual index was made, that is the index of the
-first row that appear with this data. 
+1. Columns for flags for future invalidation of rows (not relevant for features and other information, please ignore 
+columns if working on those subjects). 
+- aso_volume_high_check: all rows with ASO volume higher than 20,000 nM
+- cell_line_check: all rows with unknown cell line
+- density_zero_check: all rows with density zero
+- invalidating: rows suspected in invalidating
+2. New column - cell_line_after_check, added cell line names for unknown cell lines (as found in patents)
+3. Updated cell line organism for unknown cell lines
+4. Correction for Transcription, Location_in_sequence and Location_div_by_length - if not found, Transcription is Nan,
+Location and div by length are -1, in order to differentiate between sequences not found and sequences appear in the
+first nucleotide of the gene.
+5. SNP gene was found for several sequences and location was updated accordingly.
 
 
 
 ## Previous versions (latest to oldest)
-1. data_asoptimizer_updated.csv (mos_scan, true_length_of_seq and removing no inhibition)
+1. data_updated_inhibition.csv
 
-2. data_updated_18.5.csv (columns about the location of the sequence in the gene mRNA or transcript were added)
+2. data_asoptimizer_updated.csv (mos_scan, true_length_of_seq and removing no inhibition)
 
-3. data_from_article_fixed.csv (first version after analyzing)
+3. data_updated_18.5.csv (columns about the location of the sequence in the gene mRNA or transcript were added)
+
+4. data_from_article_fixed.csv (first version after analyzing)
 

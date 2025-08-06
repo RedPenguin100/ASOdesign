@@ -25,6 +25,8 @@ def get_gene_to_data(genes_u):
     from asodesigner.read_human_genome import get_locus_to_data_dict
     import pickle
     from asodesigner.consts import CACHE_DIR
+    import copy
+    from may_fixing_missing import change_gene_to_data_for_myh7 #for adding MYH7 SNP to dictionary
 
     cache_path = CACHE_DIR / 'gene_to_data_simple_cache.pickle'
 
@@ -36,6 +38,14 @@ def get_gene_to_data(genes_u):
     else:
         with open(cache_path, 'rb') as f:
             gene_to_data = pickle.load(f)
+
+
+    myh_snp_seq, myh_snp_exon = change_gene_to_data_for_myh7(gene_to_data['MYH7'])
+    myh7_snp = copy.deepcopy(gene_to_data['MYH7'])
+    myh7_snp.full_mrna = myh_snp_seq #full mrna sequence with the snp
+    myh7_snp.exons[23] = myh_snp_exon #already checked which exon has the mutation
+    gene_to_data['MYH7_SNP'] = myh7_snp
+
     return gene_to_data
 
 
