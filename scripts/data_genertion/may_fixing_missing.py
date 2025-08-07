@@ -2,7 +2,7 @@ import pandas as pd
 from alternative_splicing import *
 from consts import *
 from Bio.Seq import Seq
-from data_handling import get_unique_human_genes, get_gene_to_data
+from asodesigner.consts import DATA_PATH_NEW
 
 
 
@@ -185,7 +185,8 @@ def find_and_mutate(sequences, subseq, mutate_pos_in_subseq=0):
 
 
 def change_gene_to_data_for_myh7(my_gene):
-    df_seq = pd.read_csv('Genes with Sequences.csv')
+    genes_path = DATA_PATH_NEW / 'Genes with Sequences.csv'
+    df_seq = pd.read_csv(genes_path)
     myh7_snp = df_seq[df_seq['gene'] == 'MYH7_SNP_715C']['gene_sequence'].values[0]
     subsequence = 'CTGGGCTGGATGAGATCATTGCCAAGCTGACCAAGGAGA'
     mutated_results_exons = find_and_mutate(my_gene.exons, subsequence, 19)
