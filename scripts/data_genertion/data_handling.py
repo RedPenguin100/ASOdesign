@@ -39,12 +39,12 @@ def get_gene_to_data(genes_u):
         with open(cache_path, 'rb') as f:
             gene_to_data = pickle.load(f)
 
-
-    myh_snp_seq, myh_snp_exon = change_gene_to_data_for_myh7(gene_to_data['MYH7'])
-    myh7_snp = copy.deepcopy(gene_to_data['MYH7'])
-    myh7_snp.full_mrna = myh_snp_seq #full mrna sequence with the snp
-    myh7_snp.exons[23] = myh_snp_exon #already checked which exon has the mutation
-    gene_to_data['MYH7_SNP'] = myh7_snp
+    if 'MYH7' in genes_u:
+        myh_snp_seq, myh_snp_exon = change_gene_to_data_for_myh7(gene_to_data['MYH7'])
+        myh7_snp = copy.deepcopy(gene_to_data['MYH7'])
+        myh7_snp.full_mrna = myh_snp_seq #full mrna sequence with the snp
+        myh7_snp.exons[23] = myh_snp_exon #already checked which exon has the mutation
+        gene_to_data['MYH7_SNP'] = myh7_snp
 
     return gene_to_data
 
