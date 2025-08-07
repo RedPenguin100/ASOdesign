@@ -151,7 +151,14 @@ def _get_experiments_dict() -> Dict[str, Experiment]:
         # Fix for ASO5 in this article https://ars.els-cdn.com/content/image/1-s2.0-S2162253120300536-mmc1.pdf
         get_antisense('TTGCCGGTGGTGCAGATGAA'),
         # Original ASO5
-        get_antisense('TTGCCGGTGGTGCAGATAAA')]
+        get_antisense('TTGCCGGTGGTGCAGATAAA'),
+
+        get_antisense('TGTGGCGGATCTTGAAGTTC'),
+        get_antisense('CTGCTGGTAGTGGTCGGCGA'),
+        get_antisense('GCGGACTGGGTGCTCAGGTA'),
+        get_antisense('ACGATGGTCCTTCTTGTGAC'),
+
+    ]
 
     name_to_experiment[positive_control.name] = positive_control
 

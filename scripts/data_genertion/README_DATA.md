@@ -38,3 +38,4 @@ first nucleotide of the gene.
 
 4. data_from_article_fixed.csv (first version after analyzing)
 
+
