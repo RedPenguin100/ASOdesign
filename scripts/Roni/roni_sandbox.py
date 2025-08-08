@@ -9,6 +9,22 @@ from itertools import islice
 
 path_1 = "/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/"
 path_2 = "/home/oni/ASOdesign/scripts/Roni/"
+
+print('run01')
+# with open(path_1+'_gtf_annotations.pkl', 'rb') as f:
+#     gtf_dict = pickle.load(f)
+# print(gtf_dict['ENST00000340650.6']) # 71 out of range
+# print(gtf_dict['ENST00000367976.4']) # 314 out of range
+# print(gtf_dict['ENST00000164024.5']) # 7648 out of range
+# print(gtf_dict['ENST00000373345.9']) # 43438 out of range
+# print(gtf_dict['ENST00000265293.9']) # 105646 same shift worked on the first mutation
+
+df = pd.read_csv(path_1+'ACH-001328.mutated_transcriptome_premRNA.merged.csv')
+print(df[df['Transcript_ID'] == 'ENST00000373345.9']['Original Transcript Sequence'].values[0])
+print(df[df['Transcript_ID'] == 'ENST00000373345.9']['Mutated Transcript Sequence'].values[0])
+
+print(df['Mutated Transcript Sequence'].count())
+
 # print('test')
 # # parse_gtf(path_1 +'gencode.v48.chr_patch_hapl_scaff.annotation.gtf',
 # #           path_2+'_gtf_annotations.pkl')
@@ -28,10 +44,7 @@ path_2 = "/home/oni/ASOdesign/scripts/Roni/"
 # #parse_fasta(path_2+'Homo_sapiens.GRCh38.dna_sm.toplevel.fa', path_1+'_full_genomic_sequence.pkl')
 # print('worked')#test
 # print()
-with open(path_1+'_gtf_annotations.pkl', 'rb') as f:
-    gtf_dict = pickle.load(f)
-print(gtf_dict['ENST00000394323.3']) # NONE??
-print(gtf_dict['ENST00000298542.9'])
+
 
 #
 # lennn = gtf_dict['ENST00000396024.7']['end'] - gtf_dict['ENST00000396024.7']['start']
@@ -47,7 +60,8 @@ print(gtf_dict['ENST00000298542.9'])
 #
 # print()
 
+
 # with open(path_2+'off_target_info_mRNA.pkl', 'rb') as f:
-#       dick = pickle.load(f)
-# for k, v in islice(dick.items(), 100):
-#     print(f"{k}: {v}")
+#     genome_dict = pickle.load(f)
+#
+# genome_dict[6].to_csv('test.csv')

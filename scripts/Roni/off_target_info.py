@@ -20,13 +20,13 @@ may_df = pd.read_csv(data_path)
 expr_path = os.path.join(data_dir, "cell_line_expression")
 
 # Load each transcriptome file
+
 A431_df = pd.read_csv(os.path.join(expr_path, 'ACH-001328_transcriptome.csv'))
 NCI_H460_df = pd.read_csv(os.path.join(expr_path, 'ACH-000463_transcriptome.csv'))
 SH_SY5Y_df = pd.read_csv(os.path.join(expr_path, 'ACH-001188_transcriptome.csv'))
 HeLa_df = pd.read_csv(os.path.join(expr_path, 'ACH-001086_transcriptome.csv'))
 HepG2_df = pd.read_csv(os.path.join(expr_path, 'ACH-000739_transcriptome.csv'))
 U_251MG_df = pd.read_csv(os.path.join(expr_path, 'ACH-000232_transcriptome.csv'))
-
 # ============================ Cut to top n expressed ==============================
 n = 500
 A431_df = A431_df.head(n)

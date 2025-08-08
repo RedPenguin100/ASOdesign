@@ -25,14 +25,23 @@ for cell_line in celline_list:
             tid = mut_dict['id']
             mut_idx = mut_dict['start']
 
+
             if tid in exp_data_indexed.index:
                 try:
                     shift = find_shift(annotations[tid], mut_idx)
                     print(f"{tid} shift: {shift}")
-                    seq = exp_data_indexed.at[tid, 'Original Transcript Sequence']
+                    if pd.isna(exp_data_indexed.at[tid, 'Mutated Transcript Sequence']):
+                        seq = exp_data_indexed.at[tid, 'Original Transcript Sequence']
+
+                    else:
+                        seq = exp_data_indexed.at[tid, 'Mutated Transcript Sequence']
+
                     mutated_seq = mutate(mut_dict, shift, seq)
                     exp_data_indexed.at[tid, 'Mutated Transcript Sequence'] = mutated_seq
-                    print(f'mutated {tid}')
+                    if seq != mutated_seq:
+                        print(f'really mutated {tid}')
+                    else:
+                        print(f'didnt really do anything... check {tid}')
                 except Exception as e:
                     print(f"Skipping {tid} due to error: {e}")
 
