@@ -35,6 +35,7 @@ cellline_to_filename = {
 # Final storage for all scores
 all_results_TPM = {}
 all_results_norm = {}
+n = 100 # most expressed genes
 
 
 for cell_line, group_df in may_df.groupby('Cell_line'):
@@ -57,7 +58,6 @@ for cell_line, group_df in may_df.groupby('Cell_line'):
     print(f"Read {transcriptome_path}")
 
     # cut in case too heavy
-    n = 500
     curr_df = curr_df.head(n)
 
     cell_line2df_ = {cell_line: curr_df}
@@ -75,6 +75,6 @@ off_target_feature = pd.DataFrame({
     "off_target_score_log": list(all_results_norm.values())
 })
 
-out_path = os.path.join(data_dir, "off_target_feature_500_premRNA.csv")
+out_path = os.path.join(data_dir, f"off_target_feature_{n}_premRNA.csv")
 off_target_feature.to_csv(out_path, index=False)
 print(f"Saved {out_path}")
