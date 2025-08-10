@@ -1,9 +1,15 @@
 from asodesigner.fold import get_trigger_mfe_scores_by_risearch
 from scripts.Roni.off_target_functions import dna_to_rna_reverse_complement, parse_risearch_output, aggregate_off_targets
+from mutate_cell_line_transcriptome import celline_list
 
 import pandas as pd
 from io import StringIO
 import os
+
+'''
+
+path = '/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/'
+sequences = '.mutated_transcriptome_premRNA.merged.csv'
 
 
 
@@ -11,31 +17,37 @@ import os
 script_dir = os.path.dirname(__file__)
 data_dir = os.path.abspath(os.path.join(script_dir, "..", "data_genertion"))
 
+# ========================================== Pre-Processing Main ASO data =============================================
 # Load the main ASO dataset
-data_path = os.path.join(data_dir, "data_asoptimizer_updated.csv")
+data_path = os.path.join(data_dir, "data_updated_inhibition.csv")
 may_df = pd.read_csv(data_path)
-#may_df = may_df.head(100)
+may_df = may_df.head(1)
 
 # Expression files path
-expr_path = os.path.join(data_dir, "cell_line_expression")
 
 # Load each transcriptome file
-A431_df = pd.read_csv(os.path.join(expr_path, 'ACH-001328_transcriptome.csv'))
-NCI_H460_df = pd.read_csv(os.path.join(expr_path, 'ACH-000463_transcriptome.csv'))
-SH_SY5Y_df = pd.read_csv(os.path.join(expr_path, 'ACH-001188_transcriptome.csv'))
-HeLa_df = pd.read_csv(os.path.join(expr_path, 'ACH-001086_transcriptome.csv'))
-HepG2_df = pd.read_csv(os.path.join(expr_path, 'ACH-000739_transcriptome.csv'))
-U_251MG_df = pd.read_csv(os.path.join(expr_path, 'ACH-000232_transcriptome.csv'))
+A431_df = pd.read_csv(path+celline_list[0]+sequences)
+print("1")
+NCI_H460_df = pd.read_csv(path+celline_list[1]+sequences)
+print("2")
+SH_SY5Y_df = pd.read_csv(path+celline_list[2]+sequences)
+print("3")
+HeLa_df = pd.read_csv(path+celline_list[3]+sequences)
+print("4")
+HepG2_df = pd.read_csv(path+celline_list[4]+sequences)
+print("5")
+U_251MG_df = pd.read_csv(path+celline_list[5]+sequences)
+print("6")
 
 # ============================ Cut to top n expressed ==============================
-n = 500
+n = 1
 A431_df = A431_df.head(n)
 NCI_H460_df = NCI_H460_df.head(n)
 SH_SY5Y_df = SH_SY5Y_df.head(n)
 HeLa_df = HeLa_df.head(n)
 HepG2_df = HepG2_df.head(n)
 U_251MG_df = U_251MG_df.head(n)
- # ===================================================================================
+ # =============================================== Cell lines  ========================================================
 cell_line_list = ['ACH-001328', 'ACH-000463', 'ACH-001188', 'ACH-001086', 'ACH-000739', 'ACH-000232']
 
 cell_line2df_ = {'A431':A431_df,
@@ -45,8 +57,8 @@ cell_line2df_ = {'A431':A431_df,
                 'HeLa':HeLa_df,
                 'HepG2':HepG2_df,
                 'U-251MG':U_251MG_df}
-
-
+'''
+# =============================================== Function ============================================================
 
 
 def get_off_target_feature(cell_line2df, ASO_df):
@@ -78,8 +90,8 @@ def get_off_target_feature(cell_line2df, ASO_df):
                 continue
 
             # Select mutated or original sequence
-            mut_seq = gene_row.get('Mutated Transcript sequence')
-            og_seq = gene_row.get('Original Transcript sequence')
+            mut_seq = gene_row.get('Mutated Transcript Sequence')
+            og_seq = gene_row.get('Original Transcript Sequence')
 
             if pd.isna(mut_seq) and pd.isna(og_seq):
                 continue
@@ -92,6 +104,8 @@ def get_off_target_feature(cell_line2df, ASO_df):
             name_to_exp_TPM[curr_gene] = exp_TPM
             name_to_exp_norm[curr_gene] = exp_norm
 
+        if not name_to_seq:
+            print(f"[WARNING] name_to_seq is empty for index={index} cell_line={cell_line}")
 
         # Calculate mfe scores
         result_dict = get_trigger_mfe_scores_by_risearch(
@@ -123,7 +137,7 @@ def get_off_target_feature(cell_line2df, ASO_df):
 
     return [index_score_vec_TPM, index_score_vec_norm]
 
-
+'''
 off_target_vec = get_off_target_feature(cell_line2df_, may_df)
 #print(off_target_vec)
 
@@ -132,6 +146,7 @@ off_target_feature = pd.DataFrame({
     "off_target_score_log": off_target_vec[1],
 }).reset_index().rename(columns={"index": "index"})
 
-off_target_feature.to_csv(os.path.join(data_dir, "off_target_feature_500.csv"), index=False)
+off_target_feature.to_csv(os.path.join(data_dir, "off_target_feature_500_premRNA.csv"), index=False)
 print("off_target_feature.csv saved")
 
+'''

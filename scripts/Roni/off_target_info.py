@@ -76,8 +76,8 @@ def get_off_target_info(cell_line2df, ASO_df):
                 continue
 
             # Select mutated or original sequence
-            mut_seq = gene_row.get('Mutated Transcript sequence')
-            og_seq = gene_row.get('Original Transcript sequence')
+            mut_seq = gene_row.get('Mutated Transcript Sequence')
+            og_seq = gene_row.get('Original Transcript Sequence')
 
             if pd.isna(mut_seq) and pd.isna(og_seq):
                 continue
