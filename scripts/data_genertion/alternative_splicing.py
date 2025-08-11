@@ -69,8 +69,8 @@ def find_aso(df, locus_to_data, dict_with_seq):
                     # all transcripts that exist, create a different csv with transcript id and its sequence, only relevant ones
         if not found:
             df.loc[df["Sequence"] == aso, 'Transcript'] = None
-            df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = None
-            df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = None
+            df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = -1
+            df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = -1
     return df, relevant_transcripts_dict
 
 
@@ -105,8 +105,8 @@ def find_aso_for_snord(df, locus_to_data, dict_with_seq):
         # If not found in any gene or transcript
         if not found:
             df.loc[df["Sequence"] == aso, 'Transcript'] = None
-            df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = None
-            df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = None
+            df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = -1
+            df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = -1
     return df, relevant_transcripts_dict
 
 def aso_for_HBV(df, hbv_data):
@@ -121,8 +121,8 @@ def aso_for_HBV(df, hbv_data):
             df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = int(where_aso) / len(hbv_seq)
         else:
             df.loc[df["Sequence"] == aso, 'Transcript'] = None
-            df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = None
-            df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = None
+            df.loc[df["Sequence"] == aso, 'Location_in_sequence'] = -1
+            df.loc[df["Sequence"] == aso, 'Location_div_by_length'] = -1
     return df
 
 
