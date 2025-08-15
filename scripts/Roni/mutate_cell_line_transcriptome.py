@@ -117,6 +117,152 @@ def prepare_gtf_dataframe(gtf_file):
     return df
 
 
+# def find_shift(tid_dict, mut_idx):
+#     mut_idx = int(mut_idx)
+#     if mut_idx <= 0:
+#         print(f"Warning: mut_idx must be 1-based (>= 1), got {mut_idx}")
+#         return None
+#
+#     accu_len = 0
+#     cds_list = tid_dict['cds']
+#
+#     for s, e in cds_list:
+#         seg_len = e - s + 1
+#         if accu_len + seg_len >= mut_idx:
+#             offset = mut_idx - accu_len  # 0-based offset
+#             genomic_pos = s + offset
+#             shift = genomic_pos - tid_dict['start'] - mut_idx
+#             return shift
+#         accu_len += seg_len
+#
+#     print(f"Warning: mut_idx {mut_idx} is out of bounds for total CDS length.")
+#     return None
+
+
+# def find_shift(tid_dict, mut_idx):
+#     mut_idx = int(mut_idx)
+#     if mut_idx <= 0:
+#         print(f"Warning: mut_idx must be 1-based (>= 1), got {mut_idx}")
+#         return None
+#
+#     cds_list = tid_dict['cds']
+#     strand = tid_dict['strand']
+#     start = tid_dict['start']
+#     end = tid_dict['end']
+#
+#     # For minus strand, reverse the CDS list and adjust the order
+#     if strand == '-':
+#         cds_list = sorted(cds_list, reverse=True)
+#
+#     accu_len = 0
+#     for s, e in cds_list:
+#         seg_len = e - s + 1
+#         if accu_len + seg_len >= mut_idx:
+#             offset = mut_idx - accu_len  # offset into this CDS segment
+#
+#             if strand == '+':
+#                 genomic_pos = s + offset
+#                 shift = genomic_pos - start - mut_idx
+#
+#             else:  # strand == '-'
+#                 genomic_pos = e - offset
+#                 shift = genomic_pos - start - mut_idx
+#
+#             return shift
+#
+#         accu_len += seg_len
+#
+#     print(f"Warning: mut_idx {mut_idx} is out of bounds for total CDS length.")
+#     return None
+
+def find_shift(tid_dict, mut_idx):
+    mut_idx = int(mut_idx)
+    if mut_idx == 0:
+        print(f"Warning: mut_idx must be 1-based (>= 1), got {mut_idx}")
+        return None
+
+    cds_list = tid_dict['cds']
+    strand = tid_dict['strand']
+    start = tid_dict['start']
+    end = tid_dict['end']
+
+    # For minus strand, reverse the CDS list and adjust the order
+    if strand == '-':
+        cds_list = sorted(cds_list, reverse=True)
+
+    accu_len = 0
+    for s, e in cds_list:
+
+        curr_s = s
+        curr_e = e
+
+        seg_len = e - s + 1
+        if accu_len + seg_len >= mut_idx:
+            offset = mut_idx - accu_len  # offset into this CDS segment
+
+            if strand == '+':
+                genomic_pos = s + offset
+                shift = genomic_pos - start - mut_idx
+
+            else:  # strand == '-'
+                genomic_pos = e - offset
+                shift = end - genomic_pos - mut_idx
+
+            return shift
+
+        accu_len += seg_len
+
+    if accu_len < mut_idx:
+        offset = mut_idx - accu_len + 1
+
+        if strand == '+':
+            genomic_pos = curr_e + offset
+            shift = genomic_pos - start - mut_idx
+
+        else:  # strand == '-'
+            genomic_pos = curr_s - offset
+            shift = end - genomic_pos - mut_idx
+
+        return shift
+
+    print(f"Warning: mut_idx {mut_idx} is out of bounds for total CDS length.")
+    return None
+
+
+def parse_cdna_jumps(cdna_str):
+    # Remove leading "c."
+    if cdna_str.startswith("c."):
+        cdna_str = cdna_str[2:]
+
+    # Find positions (start and optional end)
+    if "_" in cdna_str:
+        start_part, end_part = cdna_str.split("_", 1)
+    else:
+        start_part = cdna_str
+        end_part = start_part  # same if no range given
+
+    # Helper to extract coordinate and jump
+    def extract_parts(part):
+        match = re.match(r"(\d+)([+-]\d+)?", part)
+        if match:
+            coord = int(match.group(1))
+            jump = int(match.group(2)) if match.group(2) else 0
+            return coord, jump
+        return None, None  # if parsing fails
+
+    start, start_jump = extract_parts(start_part)
+    end, end_jump = extract_parts(end_part)
+
+    return start, start_jump, end, end_jump
+
+
+def safe_int(x):
+    try:
+        return int(x)
+    except (ValueError, TypeError):
+        return None
+
+
 def get_distance_to_start_codon_from_df(df, transcript_id):
     """
     Compute CDS start position (in transcript/mRNA coordinates) by flattening exons and locating CDS start.
@@ -159,6 +305,81 @@ def get_distance_to_start_codon_from_df(df, transcript_id):
 
 # returns a dict that contains the orders for mutation
 
+# def mutation_dict(mut_row):
+#     # Skip if DNAChange is missing or empty
+#     if pd.isna(mut_row.get('DNAChange')) or mut_row['DNAChange'].strip() == '':
+#         return None
+#
+#     try:
+#         # Split into ID and mutation string
+#         transcript_id, mutation = mut_row['DNAChange'].split(':')
+#     except ValueError:
+#         return None  # if it can't unpack into two parts
+#
+#     if mut_row['VariantType'] == 'SNV':
+#         match = re.search(r'\d+', mutation)
+#         if match:
+#             start, end = match.span()
+#             location = mutation[start:end]
+#             from_nt, to_nt = mutation[end:].split('>')
+#             result = {'id': transcript_id, 'start': location, 'end': location, 'ref': from_nt, 'alt': to_nt, 'type': mut_row['VariantType']}
+#         else:
+#             result = {'id': transcript_id, 'start': None, 'end': None, 'ref': None, 'alt': None, 'type': None}
+#
+#     elif mut_row['VariantType'] == 'deletion':
+#         numbers = re.findall(r'\d+', mutation)
+#         if len(numbers) == 1:
+#             result = {'id': transcript_id, 'start': numbers[0], 'end': numbers[0], 'type': mut_row['VariantType']}
+#         elif len(numbers) >= 2:
+#             result = {'id': transcript_id, 'start': numbers[0], 'end': numbers[1], 'type': mut_row['VariantType']}
+#         else:
+#             result = {'id': transcript_id, 'start': None, 'end': None, 'type': None}
+#
+#     elif mut_row['VariantType'] == 'substitution':
+#         numbers = re.findall(r'\d+', mutation)
+#         if len(numbers) == 1:
+#             result = {'id': transcript_id, 'start': numbers[0], 'end': numbers[0]}
+#         elif len(numbers) >= 2:
+#             result = {'id': transcript_id, 'start': numbers[0], 'end': numbers[1]}
+#         else:
+#             result = {'id': transcript_id, 'start': None, 'end': None, 'type': None}
+#
+#         if 'delins' in mutation:
+#             result['type'] = 'delins'
+#             result['subs'] = mutation.split('delins')[-1]
+#         elif 'inv' in mutation:
+#             result['type'] = 'inversion'
+#
+#     elif mut_row['VariantType'] == 'insertion':
+#         numbers = re.findall(r'\d+', mutation)
+#         if len(numbers) == 1:
+#             result = {'id': transcript_id, 'start': numbers[0], 'end': numbers[0]}
+#         elif len(numbers) >= 2:
+#             result = {'id': transcript_id, 'start': numbers[0], 'end': numbers[1]}
+#         else:
+#             result = {'id': transcript_id, 'start': None, 'end': None, 'type': None}
+#
+#         if 'ins' in mutation:
+#             result['type'] = 'insertion'
+#             result['ins'] = mutation.split('ins')[-1]
+#         elif 'dup' in mutation:
+#             result['type'] = 'duplication'
+#     else:
+#         return None
+#
+#     result['info'] = mut_row.get('VariantInfo')
+#
+#     if isinstance(result['info'], str) and (
+#             "splice_donor_variant" in result['info'] or "splice_acceptor_variant" in result['info']
+#     ):
+#         start, start_jump, end, end_jump = parse_cdna_jumps(mutation)
+#         result['start'] = start
+#         result['end'] = end
+#         result['start_jump'] = start_jump
+#         result['end_jump'] = end_jump
+#
+#     return result
+
 def mutation_dict(mut_row):
     # Skip if DNAChange is missing or empty
     if pd.isna(mut_row.get('DNAChange')) or mut_row['DNAChange'].strip() == '':
@@ -170,33 +391,35 @@ def mutation_dict(mut_row):
     except ValueError:
         return None  # if it can't unpack into two parts
 
+    result = {'id': transcript_id, 'start_jump': 0, 'end_jump': 0}  # default jumps = 0
+
     if mut_row['VariantType'] == 'SNV':
         match = re.search(r'\d+', mutation)
         if match:
             start, end = match.span()
             location = mutation[start:end]
             from_nt, to_nt = mutation[end:].split('>')
-            result = {'id': transcript_id, 'loc': location, 'ref': from_nt, 'alt': to_nt, 'type': mut_row['VariantType']}
+            result.update({'start': int(location), 'end': int(location), 'ref': from_nt, 'alt': to_nt, 'type': mut_row['VariantType']})
         else:
-            result = {'id': transcript_id, 'loc': None, 'ref': None, 'alt': None, 'type': None}
+            result.update({'start': None, 'end': None, 'ref': None, 'alt': None, 'type': None})
 
     elif mut_row['VariantType'] == 'deletion':
         numbers = re.findall(r'\d+', mutation)
         if len(numbers) == 1:
-            result = {'id': transcript_id, 'start': numbers[0], 'end': numbers[0], 'type': mut_row['VariantType']}
+            result.update({'start': int(numbers[0]), 'end': int(numbers[0]), 'type': mut_row['VariantType']})
         elif len(numbers) >= 2:
-            result = {'id': transcript_id, 'start': numbers[0], 'end': numbers[1], 'type': mut_row['VariantType']}
+            result.update({'start': int(numbers[0]), 'end': int(numbers[1]), 'type': mut_row['VariantType']})
         else:
-            result = {'id': transcript_id, 'start': None, 'end': None, 'type': None}
+            result.update({'start': None, 'end': None, 'type': None})
 
     elif mut_row['VariantType'] == 'substitution':
         numbers = re.findall(r'\d+', mutation)
         if len(numbers) == 1:
-            result = {'id': transcript_id, 'start': numbers[0], 'end': numbers[0]}
+            result.update({'start': int(numbers[0]), 'end': int(numbers[0])})
         elif len(numbers) >= 2:
-            result = {'id': transcript_id, 'start': numbers[0], 'end': numbers[1]}
+            result.update({'start': int(numbers[0]), 'end': int(numbers[1])})
         else:
-            result = {'id': transcript_id, 'start': None, 'end': None, 'type': None}
+            result.update({'start': None, 'end': None, 'type': None})
 
         if 'delins' in mutation:
             result['type'] = 'delins'
@@ -207,11 +430,11 @@ def mutation_dict(mut_row):
     elif mut_row['VariantType'] == 'insertion':
         numbers = re.findall(r'\d+', mutation)
         if len(numbers) == 1:
-            result = {'id': transcript_id, 'start': numbers[0], 'end': numbers[0]}
+            result.update({'start': int(numbers[0]), 'end': int(numbers[0])})
         elif len(numbers) >= 2:
-            result = {'id': transcript_id, 'start': numbers[0], 'end': numbers[1]}
+            result.update({'start': int(numbers[0]), 'end': int(numbers[1])})
         else:
-            result = {'id': transcript_id, 'start': None, 'end': None, 'type': None}
+            result.update({'start': None, 'end': None, 'type': None})
 
         if 'ins' in mutation:
             result['type'] = 'insertion'
@@ -222,8 +445,18 @@ def mutation_dict(mut_row):
         return None
 
     result['info'] = mut_row.get('VariantInfo')
-    return result
 
+    # --- Handle splice donor/acceptor ---
+    if isinstance(result['info'], str) and (
+        "splice_donor_variant" in result['info'] or "splice_acceptor_variant" in result['info']
+    ):
+        start, start_jump, end, end_jump = parse_cdna_jumps(mutation)
+        result['start'] = start
+        result['end'] = end
+        result['start_jump'] = start_jump
+        result['end_jump'] = end_jump
+
+    return result
 
 def comp_strand(seq):
     seq = seq[::-1]
@@ -242,58 +475,110 @@ def comp_strand(seq):
     return new_seq
 
 
+# def mutate(mut_dict, shift, sequence):
+#     # Prepare numeric values once
+#     start = int(mut_dict.get('start', 0)) + int(mut_dict.get('start_jump', 0))
+#     end = int(mut_dict.get('end', 0)) + int(mut_dict.get('end_jump', 0))
+#     shift = int(shift)  # ensure int
+#
+#     mut_seq = list(sequence)
+#
+#     if mut_dict['type'] == 'SNV':
+#
+#         loc = int(mut_dict['start']) + shift - 1
+#         ref = mut_dict['ref']
+#         alt = mut_dict['alt']
+#
+#         mut_seq[loc] = alt
+#
+#         # if sequence[loc] == ref:
+#         #     mut_seq[loc] = alt
+#         #
+#         # else:
+#         #     mut_seq = 'mismatch'
+#         #     print(f'mismatch at {loc}, expected {ref}, got {mut_seq[loc]}')
+#
+#     elif mut_dict['type'] == 'deletion':
+#
+#         start = int(mut_dict['start']) + shift - 1
+#         end = int(mut_dict['end']) + shift
+#         del mut_seq[start:end]
+#
+#     elif mut_dict['type'] == 'insertion':
+#
+#         start = int(mut_dict['start']) + shift - 1
+#         mut_seq[start] += mut_dict['ins']
+#
+#     elif mut_dict['type'] == 'duplication':
+#
+#         start = int(mut_dict['start']) + shift - 1
+#         end = int(mut_dict['end']) + shift
+#         dup = mut_seq[start:end]
+#         mut_seq[end - 1] += ''.join(dup)
+#
+#     elif mut_dict['type'] == 'delins':
+#
+#         start = int(mut_dict['start']) + shift - 1
+#         end = int(mut_dict['end']) + shift
+#         del mut_seq[start:end]
+#         mut_seq[start - 1] += mut_dict['subs']
+#
+#     elif mut_dict['type'] == 'inversion':
+#
+#         start = int(mut_dict['start']) + shift - 1
+#         end = int(mut_dict['end']) + shift
+#         sub = ''.join(mut_seq[start:end])
+#         new = comp_strand(sub)
+#         del mut_seq[start:end]
+#         mut_seq[start - 1] += new
+#
+#
+#     return ''.join(mut_seq)
 def mutate(mut_dict, shift, sequence):
-    if 'splice' in mut_dict['info'][:5]:
-        return "Splice variant cannot be predicted"
+    """
+    Apply a text-based sequence modification from a mutation dictionary.
+    This is purely string manipulation for data analysis.
+    """
 
-    else:
-        mut_seq = list(sequence)
+    # Prepare numeric values once
+    start = int(mut_dict.get('start', 0)) + int(mut_dict.get('start_jump', 0))
+    end = int(mut_dict.get('end', 0)) + int(mut_dict.get('end_jump', 0))
+    shift = int(shift)  # ensure int
 
-        if mut_dict['type'] == 'SNV':
+    mut_seq = list(sequence)  # convert to mutable list of chars
 
-            loc = int(mut_dict['loc']) + shift - 1
-            ref = mut_dict['ref']
-            alt = mut_dict['alt']
+    if mut_dict['type'] == 'SNV':
+        loc = start + shift - 1
+        mut_seq[loc] = mut_dict['alt']
 
-            if sequence[loc] == ref:
-                mut_seq[loc] = alt
+    elif mut_dict['type'] == 'deletion':
+        start_i = start + shift - 1
+        end_i = end + shift
+        del mut_seq[start_i:end_i]
 
-            else:
-                mut_seq = 'mismatch'
+    elif mut_dict['type'] == 'insertion':
+        start_i = start + shift - 1
+        mut_seq[start_i] += mut_dict.get('ins', '')
 
-        elif mut_dict['type'] == 'deletion':
+    elif mut_dict['type'] == 'duplication':
+        start_i = start + shift - 1
+        end_i = end + shift
+        dup = mut_seq[start_i:end_i]
+        mut_seq[end_i - 1] += ''.join(dup)
 
-            start = int(mut_dict['start']) + shift - 1
-            end = int(mut_dict['end']) + shift
-            del mut_seq[start:end]
+    elif mut_dict['type'] == 'delins':
+        start_i = start + shift - 1
+        end_i = end + shift
+        del mut_seq[start_i:end_i]
+        mut_seq[start_i - 1] += mut_dict.get('subs', '')
 
-        elif mut_dict['type'] == 'insertion':
-
-            start = int(mut_dict['start']) + shift - 1
-            mut_seq[start] += mut_dict['ins']
-
-        elif mut_dict['type'] == 'duplication':
-
-            start = int(mut_dict['start']) + shift - 1
-            end = int(mut_dict['end']) + shift
-            dup = mut_seq[start:end]
-            mut_seq[end-1] += ''.join(dup)
-
-        elif mut_dict['type'] == 'delins':
-
-            start = int(mut_dict['start']) + shift - 1
-            end = int(mut_dict['end']) + shift
-            del mut_seq[start:end]
-            mut_seq[start-1] += mut_dict['subs']
-
-        elif mut_dict['type'] == 'inversion':
-
-            start = int(mut_dict['start']) + shift - 1
-            end = int(mut_dict['end']) + shift
-            sub = ''.join(mut_seq[start:end])
-            new = comp_strand(sub)
-            del mut_seq[start:end]
-            mut_seq[start - 1] += new
+    elif mut_dict['type'] == 'inversion':
+        start_i = start + shift - 1
+        end_i = end + shift
+        sub = ''.join(mut_seq[start_i:end_i])
+        new = comp_strand(sub)  # assuming you have this for text complement
+        del mut_seq[start_i:end_i]
+        mut_seq[start_i - 1] += new
 
     return ''.join(mut_seq)
 
@@ -352,9 +637,13 @@ def final_func(seq_fasta, expression_file, mutation_file, cds_gtf_file, cell_lin
                 try:
                     shift = get_distance_to_start_codon_from_df(cds_data, tid)
                     print(f"{tid} shift: {shift}")
-                    seq = exp_data_indexed.at[tid, 'Original Transcript sequence']
+                    if pd.isna(exp_data_indexed.at[tid, 'Mutated Transcript Sequence']):
+                        seq = exp_data_indexed.at[tid, 'Original Transcript Sequence']
+                    else:
+                        seq = exp_data_indexed.at[tid, 'Mutated Transcript Sequence']
+
                     mutated_seq = mutate(mut_dict, shift, seq)
-                    exp_data_indexed.at[tid, 'Mutated Transcript sequence'] = mutated_seq
+                    exp_data_indexed.at[tid, 'Mutated Transcript Sequence'] = mutated_seq
                     print(f'mutated {tid}')
                 except Exception as e:
                     print(f"Skipping {tid} due to error: {e}")
@@ -375,11 +664,11 @@ celline_list = ['ACH-001328',
                 'ACH-000232',
                 ]
 
-for line in celline_list:
-    final_func(
-        'Homo_sapiens.GRCh38.cdna.all.fa',
-        'OmicsExpressionProteinCodingGenesTPMLogp1.csv',
-        'OmicsSomaticMutations.csv',
-        'gencode.v48.chr_patch_hapl_scaff.annotation.gtf',
-        line, 500
-    )
+# for line in celline_list:
+#     final_func(
+#         'Homo_sapiens.GRCh38.cdna.all.fa',
+#         'OmicsExpressionProteinCodingGenesTPMLogp1.csv',
+#         'OmicsSomaticMutations.csv',
+#         'gencode.v48.chr_patch_hapl_scaff.annotation.gtf',
+#         line, 500
+#     )

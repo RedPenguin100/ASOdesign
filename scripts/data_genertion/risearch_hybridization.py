@@ -1,5 +1,4 @@
 import random
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from scripts.data_genertion.consts import *
 from asodesigner.util import get_antisense
@@ -14,7 +13,7 @@ class RNA_TABLES:
     SLH04_WOGU = 'dsm_slh04_woGU_pos'
 
 
-RNA_TABLES = [RNA_TABLES.SU95_WGU]
+RNA_TABLES = [RNA_TABLES.SU95_WGU, RNA_TABLES.SLH04_WOGU, RNA_TABLES.SU95_WOGU]
 
 
 # all_data_human_gene_premrna = all_data_human_gene_premrna.sample(frac=0.1)
@@ -24,9 +23,9 @@ RNA_TABLES = [RNA_TABLES.SU95_WGU]
 # for dsm in ['dsm_su95_rev_woGU_pos', 'dsm_su95_rev_wGU_pos', 'dsm_slh04_woGU_pos']:
 
 def populate_with_risearch_hybridization(df, genes_u, gene_to_data):
-    minimal_scores = [400]
+    minimal_scores = [600]
 
-    settings = list(product(RNA_TABLES, [100, 138, 150], minimal_scores, [37, 50], [True, False]))
+    settings = list(product(RNA_TABLES, [138], minimal_scores, [37], [True, False]))
     for dsm, base, score, temp, transpose in settings:
         print(f"Running {dsm} for base {base} and score {score} temp {temp} transpose {transpose}")
 
@@ -36,9 +35,9 @@ def populate_with_risearch_hybridization(df, genes_u, gene_to_data):
             parsing_type = '2'
 
             # prepare and dump target cache
-            # hash = random.getrandbits(64)
-            # target_cache_filename = f'target-cache-{hash}.fa'
-            # target_cache_path = dump_target_file(target_cache_filename, name_to_sequence)
+            hash = random.getrandbits(64)
+            target_cache_filename = f'target-cache-{hash}.fa'
+            target_cache_path = dump_target_file(target_cache_filename, name_to_sequence)
 
             gene_rows = df[df[CANONICAL_GENE] == gene]
 
@@ -65,11 +64,12 @@ def populate_with_risearch_hybridization(df, genes_u, gene_to_data):
                     sense = get_antisense(antisense)
                     l = row[SENSE_LENGTH]
                     tmp = get_trigger_mfe_scores_by_risearch(
-                        sense, {'target_seq': sense},
+                        sense, {'target_seq': target},
                         interaction_type=interaction,
                         minimum_score=score,
                         neighborhood=l,
                         parsing_type=parsing_type,
+                        target_file_cache=target_cache_path
                     )
                     scores = get_mfe_scores(tmp, parsing_type)
                     if not scores or not scores[0]:
