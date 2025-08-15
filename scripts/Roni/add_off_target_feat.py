@@ -111,7 +111,7 @@ def get_off_target_feature(cell_line2df, ASO_df):
         result_dict = get_trigger_mfe_scores_by_risearch(
             trigger,
             name_to_seq,
-            minimum_score=1200,
+            minimum_score=800,
             parsing_type='2'
         )
         result_df = parse_risearch_output(result_dict)
@@ -146,7 +146,7 @@ off_target_feature = pd.DataFrame({
     "off_target_score_log": off_target_vec[1],
 }).reset_index().rename(columns={"index": "index"})
 
-off_target_feature.to_csv(os.path.join(data_dir, "off_target_feature_500_premRNA.csv"), index=False)
+off_target_feature.to_csv(os.path.join(data_dir, "off_target.top500.cutoff1200.premRNA.csv"), index=False)
 print("off_target_feature.csv saved")
 
 '''

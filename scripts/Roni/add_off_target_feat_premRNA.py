@@ -26,16 +26,18 @@ cellline_to_filename = {
     'A-431': 'ACH-001328',
     'NCI-H460': 'ACH-000463',
     'SH_SY5Y': 'ACH-001188',
+    'SH-SY5Y': 'ACH-001188',
     'HeLa': 'ACH-001086',
     'Hela': 'ACH-001086',
     'HepG2': 'ACH-000739',
-    'U-251MG': 'ACH-000232'
+    'U-251MG': 'ACH-000232',
+    'U251': 'ACH-000232'
 }
 
 # Final storage for all scores
 all_results_TPM = {}
 all_results_norm = {}
-n = 100 # most expressed genes
+n = 200 # most expressed genes
 
 
 for cell_line, group_df in may_df.groupby('Cell_line'):
@@ -75,6 +77,6 @@ off_target_feature = pd.DataFrame({
     "off_target_score_log": list(all_results_norm.values())
 })
 
-out_path = os.path.join(data_dir, f"off_target_feature_{n}_premRNA.csv")
+out_path = os.path.join(data_dir, f"off_target.top{n}.cutoff800.premRNA.csv")
 off_target_feature.to_csv(out_path, index=False)
 print(f"Saved {out_path}")
