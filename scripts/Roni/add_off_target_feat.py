@@ -3,6 +3,7 @@ from scripts.Roni.off_target_functions import dna_to_rna_reverse_complement, par
 from mutate_cell_line_transcriptome import celline_list
 
 import pandas as pd
+import numpy as np
 from io import StringIO
 import os
 
@@ -61,11 +62,13 @@ cell_line2df_ = {'A431':A431_df,
 # =============================================== Function ============================================================
 
 
-def get_off_target_feature(cell_line2df, ASO_df):
+def get_off_target_feature(cell_line2df, ASO_df, cutoff):
     index_score_vec_TPM = {}
     index_score_vec_norm = {}
+    index_score_vec_MS = {}
+    index_score_vec_geo = {}
 
-    for idx, row in ASO_df.iterrows():
+    for idx, row in ASO_df.iterrows(): # For ASO
 
         index = row['index']
         cell_line = row['Cell_line']
@@ -82,7 +85,7 @@ def get_off_target_feature(cell_line2df, ASO_df):
         name_to_exp_TPM = {}
         name_to_exp_norm = {}
 
-        for _, gene_row in curr_df.iterrows():
+        for _, gene_row in curr_df.iterrows(): # For transcript
             curr_gene = gene_row['Gene'].split()[0]
 
             # Skip the target gene
@@ -107,19 +110,20 @@ def get_off_target_feature(cell_line2df, ASO_df):
         if not name_to_seq:
             print(f"[WARNING] name_to_seq is empty for index={index} cell_line={cell_line}")
 
-        # Calculate mfe scores
+        # Calculate mfe scores per ASO to all topN expressed genes
         result_dict = get_trigger_mfe_scores_by_risearch(
             trigger,
             name_to_seq,
-            minimum_score=800,
+            minimum_score=cutoff,
             parsing_type='2'
         )
-        result_df = parse_risearch_output(result_dict)
+        result_df = parse_risearch_output(result_dict) # make it interperable
         #print(f'001:\n {result_df}')
-        result_df_agg = aggregate_off_targets(result_df)
+        result_df_agg = aggregate_off_targets(result_df) # take the maximal bind per transcript and make a proper df
         #print(f'002:\n {result_df_agg}')
 
-        # Weight by expression
+        # ===================== Weight by expression (Arithmetic mean) ==========================
+        '''
         result_dict_weighted_TPM = {
             row['target']: row['energy'] * name_to_exp_TPM.get(row['target'], 0)
             for _, row in result_df_agg.iterrows()
@@ -133,9 +137,46 @@ def get_off_target_feature(cell_line2df, ASO_df):
 
         #print(result_dict_weighted_norm)
         index_score_vec_norm[index] = sum(result_dict_weighted_norm.values())
+        '''
 
 
-    return [index_score_vec_TPM, index_score_vec_norm]
+        # ================== Weight by expression (Geometric mean) =============================
+        #'''
+
+        log_sum = 0.0
+        count = 0
+        for _,r in result_df_agg.iterrows():
+            g = r['energy']
+            e = float(name_to_exp_TPM.get(r['target'], 0))/1e6
+            if (g is not None) and (e > 0) and (g < 0):
+                log_sum += e * np.log(-g)
+                count += 1
+
+        product_log = log_sum
+        product = float(np.exp(log_sum)) if count > 0 else 0.0
+        index_score_vec_geo[index] = product_log
+
+        #'''
+    # =================== Weight by mechanical statistics ===================================
+        '''
+        RT = 0.616
+        bind_score = 0
+        for _,r in result_df_agg.iterrows():
+            g = r['energy']
+            e = float(name_to_exp_TPM.get(r['target'], 0))/1e6
+            bind_score += e * np.exp(-g/RT)
+
+        index_score_vec[index] = bind_score
+        
+
+    max_val = max(index_score_vec_MS.values())
+    if max_val > 0:
+        for k,v in index_score_vec_MS.items():
+            index_score_vec_MS[k] = v/max_val
+    return index_score_vec_MS
+    '''
+    #return [index_score_vec_TPM, index_score_vec_norm]
+    return index_score_vec_geo
 
 '''
 off_target_vec = get_off_target_feature(cell_line2df_, may_df)
