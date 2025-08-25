@@ -65,26 +65,47 @@ print('run01')
 #     genome_dict = pickle.load(f)
 #
 # genome_dict[6].to_csv('test.csv')
-from asodesigner.consts import DATA_PATH_NEW
-import pandas as pd
-import matplotlib.pyplot as plt
 
-# Load both CSVs
-df1 = pd.read_csv(DATA_PATH_NEW/"off_target.GEO.top100.cutoff1000.premRNA.csv", index_col=0)  # set index to the column with gene IDs
-df2 = pd.read_csv(DATA_PATH_NEW/"data_asoptimizer_updated.csv", index_col=0)
+#======================================================================================================================
+#======================================================================================================================
+#================================== CREATE SCATTER PLOT ================================================================
 
-# Pick the columns you want to compare
-col1 = "off_target_score_MS"
-col2 = "Inhibition(%)"
+# from asodesigner.consts import DATA_PATH_NEW
+# import pandas as pd
+# import matplotlib.pyplot as plt
+#
+# # Load both CSVs
+# df1 = pd.read_csv(DATA_PATH_NEW/"off_target.GEO.top100.cutoff1000.premRNA.csv", index_col=0)  # set index to the column with gene IDs
+# df2 = pd.read_csv(DATA_PATH_NEW/"data_asoptimizer_updated.csv", index_col=0)
+#
+# # Pick the columns you want to compare
+# col1 = "off_target_score_MS"
+# col2 = "Inhibition(%)"
+#
+# # Merge on the index
+# merged = df1[[col1]].join(df2[[col2]], how="inner")
+#
+# # Scatter plot
+# plt.figure(figsize=(6,6))
+# plt.scatter(merged[col1], merged[col2], alpha=0.5)
+# plt.xlabel(col1)
+# plt.ylabel(col2)
+# plt.title(f"Scatter plot: {col1} vs {col2}")
+# plt.grid(True)
+# plt.show()
 
-# Merge on the index
-merged = df1[[col1]].join(df2[[col2]], how="inner")
+#======================================================================================================================
+#======================================================================================================================
 
-# Scatter plot
-plt.figure(figsize=(6,6))
-plt.scatter(merged[col1], merged[col2], alpha=0.5)
-plt.xlabel(col1)
-plt.ylabel(col2)
-plt.title(f"Scatter plot: {col1} vs {col2}")
-plt.grid(True)
-plt.show()
+with open(path_2+'off_target_info.premRNA.top100.cutoff1200.pkl', 'rb') as f:
+     dicto = pickle.load(f)
+
+pd.set_option('display.max_columns', None)
+
+# optionally show all rows (careful if DataFrame is huge)
+pd.set_option('display.max_rows', None)
+
+# widen the display so it doesn't wrap badly
+pd.set_option('display.width', 200)
+
+print(dicto)
