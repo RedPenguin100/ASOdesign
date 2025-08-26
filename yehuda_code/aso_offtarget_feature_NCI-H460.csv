@@ -1,0 +1,2 @@
+index,cell_line,target,target_start,target_end,energy_w_by_exp_ARTH,mfe_offtarget,energy_w_by_exp_ARTH_overAbsMFE,seq_col
+929,NCI-H460,PFN1,2539,2548,-0.031556659999999986,-0.21551852016852643,0.1464220335928625,Original Transcript Sequence
