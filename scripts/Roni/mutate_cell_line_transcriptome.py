@@ -2,9 +2,15 @@ import pandas as pd
 from Bio import SeqIO
 import re
 
+"""
+This code might not work if RAM has less than 8 GB (relevant for working with pre-mRNA (long) sequences)
+"""
 
 def get_expression_of_cell_line(cell_line, expression_file):
     # read header to get gene names
+    """
+    Returns DataFrame containing expression levels of cell line genes
+    """
     with open(expression_file, 'r') as f:
         header = f.readline().strip().split(',')
 
@@ -41,6 +47,9 @@ def get_expression_of_cell_line(cell_line, expression_file):
 
 
 def get_mutations_of_cell_line(cell_line, mutation_file):
+    """
+    Creates a DataFrame that contains all mutations of the cell line
+    """
     necessary_cols = ['ModelID', 'Ref', 'Alt', 'VariantType', 'VariantInfo', 'DNAChange', 'HugoSymbol']
 
     # read data
@@ -61,6 +70,7 @@ def get_record_by_hugo(indexed_fasta, hugo_symbol):
 
 
 def extract_cds_from_gtf(gtf_path):
+    # Unused in final_func
     cds_rows = []
 
     with open(gtf_path, 'r') as file:
@@ -176,6 +186,12 @@ def prepare_gtf_dataframe(gtf_file):
 #     return None
 
 def find_shift(tid_dict, mut_idx):
+    """
+    This function analyzes tid_dict, which has all the exons' coordinates.
+    It maps the mutation index relative to the beginning of CDS to its location
+    within the entire pre-mRNA sequence.
+    """
+
     mut_idx = int(mut_idx)
     if mut_idx == 0:
         print(f"Warning: mut_idx must be 1-based (>= 1), got {mut_idx}")
@@ -229,7 +245,7 @@ def find_shift(tid_dict, mut_idx):
     return None
 
 
-def parse_cdna_jumps(cdna_str):
+def parse_cdna_jumps(cdna_str): # Robust but was originally made for splicing mutations
     # Remove leading "c."
     if cdna_str.startswith("c."):
         cdna_str = cdna_str[2:]
@@ -265,6 +281,7 @@ def safe_int(x):
 
 def get_distance_to_start_codon_from_df(df, transcript_id):
     """
+    ========================== Unused in final_func, relevant for mature mRNA sequences only ==========================
     Compute CDS start position (in transcript/mRNA coordinates) by flattening exons and locating CDS start.
     """
     # get exons and CDS for this transcript
@@ -300,7 +317,7 @@ def get_distance_to_start_codon_from_df(df, transcript_id):
 
         transcript_pos += exon_len
 
-    raise ValueError(f"Could not find CDS start position in exons for transcript {transcript_id}")
+    raise ValueError(f"Could not find CDS start position in exons for transcript {transcript_id}")#
 
 
 # returns a dict that contains the orders for mutation
@@ -474,7 +491,7 @@ def comp_strand(seq):
             new_seq += seq[n]
     return new_seq
 
-
+# ================================================= OLD MUTATE FUNCTION ================================================
 # def mutate(mut_dict, shift, sequence):
 #     # Prepare numeric values once
 #     start = int(mut_dict.get('start', 0)) + int(mut_dict.get('start_jump', 0))
@@ -534,6 +551,7 @@ def comp_strand(seq):
 #
 #
 #     return ''.join(mut_seq)
+
 def mutate(mut_dict, shift, sequence):
     """
     Apply a text-based sequence modification from a mutation dictionary.
@@ -593,8 +611,8 @@ def final_func(seq_fasta, expression_file, mutation_file, cds_gtf_file, cell_lin
 
     # add new columns
     exp_data['Transcript_ID'] = None
-    exp_data['Mutated Transcript sequence'] = None
-    exp_data['Original Transcript sequence'] = None
+    exp_data['Mutated Transcript Sequence'] = None
+    exp_data['Original Transcript Sequence'] = None
 
     records = list(SeqIO.parse(seq_fasta, "fasta"))
     record_by_hugo = {}
@@ -611,10 +629,10 @@ def final_func(seq_fasta, expression_file, mutation_file, cds_gtf_file, cell_lin
         record = record_by_hugo.get(hugo_symbol)
         if record:
             exp_data.at[idx, 'Transcript_ID'] = record.id
-            exp_data.at[idx, 'Original Transcript sequence'] = str(record.seq)
+            exp_data.at[idx, 'Original Transcript Sequence'] = str(record.seq)
         else:
             exp_data.at[idx, 'Transcript_ID'] = None
-            exp_data.at[idx, 'Original Transcript sequence'] = None
+            exp_data.at[idx, 'Original Transcript Sequence'] = None
         print('got sequence')
     print('finished getting sequences')
 
@@ -656,13 +674,17 @@ def final_func(seq_fasta, expression_file, mutation_file, cds_gtf_file, cell_lin
     return exp_data
 
 
-celline_list = ['ACH-001328',
-                'ACH-000463',
-                'ACH-001188',
-                'ACH-001086',
-                'ACH-000739',
-                'ACH-000232',
-                ]
+# celline_list = ['ACH-001328',
+#                 'ACH-000463',
+#                 'ACH-001188',
+#                 'ACH-001086',
+#                 'ACH-000739',
+#                 'ACH-000232',
+#                 ]
+
+celline_list = ['ACH-000681']
+
+# =================================== Create the mutated cell line transcriptome files =================================
 
 # for line in celline_list:
 #     final_func(
@@ -672,3 +694,14 @@ celline_list = ['ACH-001328',
 #         'gencode.v48.chr_patch_hapl_scaff.annotation.gtf',
 #         line, 500
 #     )
+
+A549 = "ACH-000681"
+path_1 = "/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/"
+exp_file = path_1 + "OmicsExpressionProteinCodingGenesTPMLogp1.csv"
+mut_file = path_1 + "OmicsSomaticMutations.csv"
+seq_file = path_1 + "Homo_sapiens.GRCh38.cdna.all.fa"
+gtf_file = path_1 + "gencode.v48.chr_patch_hapl_scaff.annotation.gtf"
+
+
+# final_func(seq_file, exp_file, mut_file, gtf_file, A549, 30000)
+

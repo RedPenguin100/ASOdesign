@@ -3,6 +3,9 @@ import pandas as pd
 from off_target_functions import dna_to_rna_reverse_complement, normalize_chrom, name2accession
 import pickle
 
+"""
+This code extracts the mRNA sequences 
+"""
 # Get the directory of the current script
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -10,14 +13,16 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 DATA_DIR = os.path.join(PROJECT_ROOT, "scripts", "data_genertion", "cell_line_expression")
 
 
-cell_line2data = {
-    "ACH-001328": [os.path.join(DATA_DIR, "ACH-001328_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-001328_mutations.csv")],
-    "ACH-000463": [os.path.join(DATA_DIR, "ACH-000463_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-000463_mutations.csv")],
-    "ACH-001188": [os.path.join(DATA_DIR, "ACH-001188_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-001188_mutations.csv")],
-    "ACH-001086": [os.path.join(DATA_DIR, "ACH-001086_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-001086_mutations.csv")],
-    "ACH-000739": [os.path.join(DATA_DIR, "ACH-000739_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-000739_mutations.csv")],
-    "ACH-000232": [os.path.join(DATA_DIR, "ACH-000232_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-000232_mutations.csv")]
-}
+# cell_line2data = {
+#     "ACH-001328": [os.path.join(DATA_DIR, "ACH-001328_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-001328_mutations.csv")],
+#     "ACH-000463": [os.path.join(DATA_DIR, "ACH-000463_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-000463_mutations.csv")],
+#     "ACH-001188": [os.path.join(DATA_DIR, "ACH-001188_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-001188_mutations.csv")],
+#     "ACH-001086": [os.path.join(DATA_DIR, "ACH-001086_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-001086_mutations.csv")],
+#     "ACH-000739": [os.path.join(DATA_DIR, "ACH-000739_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-000739_mutations.csv")],
+#     "ACH-000232": [os.path.join(DATA_DIR, "ACH-000232_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-000232_mutations.csv")]
+# }
+
+cell_line2data = {"ACH-000681": [os.path.join(DATA_DIR, "ACH-000681_transcriptome.csv"), os.path.join(DATA_DIR, "ACH-000681_mutations.csv")]}
 
 
 # Reference file paths
