@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-from consts import DATA_PATH_NEW
+from asodesigner.consts import DATA_PATH_NEW
 
 
 def load_all_features(filenames=None, light=True):
