@@ -92,10 +92,37 @@ def tp53_like_single_channel(
     res = (pd.DataFrame(rows, columns=["Gene","Degree","SharedWithTP53","Jaccard","OverlapCoef","HypergeomP"])
             .sort_values(["HypergeomP","Jaccard","Degree"], ascending=[True,False,False])
             .reset_index(drop=True))
-
+    
+    # Add all candidate genes in the first column and a column indicating if they are TP53 neighbors
+    all_candidates = list(U)
+    is_tp53_neighbor = [1 if c in T else 0 for c in all_candidates]
+    candidates_df = pd.DataFrame({
+        "CandidateGene": all_candidates,
+        "IsTP53Neighbor": is_tp53_neighbor
+    })
+    # Merge the results DataFrame with the candidates DataFrame
+    res = candidates_df.merge(res, left_on="CandidateGene", right_on="Gene", how="left")
+    res = res.drop(columns=["Gene"])
+    
+    filtered_res = res
+    # genes = [
+    # "BGN", "TP53BP1", "BCAM", "MBOAT1", "USP28", "GABRR3", "DDX3Y", "CD38",
+    # "QPCT", "CDKN1A", "CDC14A", "UBQLN2", "FEM1B", "GPR31", "RAB5B", "JAZF1",
+    # "PNPLA6", "RGS12", "RARA", "LANCL2", "FADD", "APTX", "ZBTB4", "ZRSR2",
+    # "GTPBP6", "RAB6A", "WTH3DI", "NFE2L2", "AHCTF1", "MAPKAPK2", "CTNNB1",
+    # "MET", "SGK2", "RB1", "CSNK1E", "PAK3"
+    # ]
+    # # Display only the genes from the list
+    # filtered_res = res[res["CandidateGene"].isin(genes)].reset_index(drop=True)
+    
     # quick view
-    print(f"[edge_type={edge_type}] TP53 degree={K}, candidates={len(res)}, edges_kept={len(g)} (min_combined={min_combined})")
-    print(res.head(topk).to_string(index=False))
+    filtered_res = filtered_res.sort_values("HypergeomP", ascending=True).reset_index(drop=True)
+    print(f"[edge_type={edge_type}] TP53 degree={K}, candidates={len(filtered_res)}, edges_kept={len(g)} (min_combined={min_combined})")
+    print(filtered_res.head(topk).to_string(index=False))
+    
+    filtered_res.to_csv(OUT_CSV, index=False)
+    print(f"\nSaved {edge_type} results to {OUT_CSV}")
+    
     return res
 
 # --- example usage (assumes you already ran the two lines you posted) ---
@@ -107,7 +134,9 @@ allowed = {"neighborhood","fusion","cooccurence","coexpression","experimental","
 for edge_type in allowed:
     print(f"\n--- Running tp53_like_single_channel for edge_type: {edge_type} ---")
     try:
+        OUT_CSV = f"tp53_{edge_type}_results.csv"
         res = tp53_like_single_channel(edge_type, info_df, df)
+        
     except Exception as e:
         print(f"Error for edge_type '{edge_type}': {e}")
         continue

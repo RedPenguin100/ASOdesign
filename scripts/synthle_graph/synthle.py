@@ -14,11 +14,10 @@ except Exception:
 BIOGRID_FILE = "BIOGRID-ORGANISM-Homo_sapiens-4.4.248.tab2.txt"
 TARGET = "TP53"
 TOPK = 30
-OUT_CSV = "tp53_like_results.csv"
-MIN_DEG = 10          # discard tiny nodes
+MIN_DEG = 1          # discard tiny nodes
 MAX_DEG_PERCENTILE = 99.0  # discard huge hubs
 LOW_THROUGHPUT = True
-PHYSICAL_ONLY = True
+
 # ==============
 
 
@@ -31,10 +30,12 @@ def load_biogrid_tab2(path):
     return df
 
 
-def filter_df(df):
+def filter_df(df, type="genetic"):
     
-    if PHYSICAL_ONLY:
+    if type == "physical":
         df = df[df["Experimental System Type"] == "physical"]
+    elif type == "genetic":
+        df = df[df["Experimental System Type"] == "genetic"]
     if LOW_THROUGHPUT:
         df = df[df["Throughput"] == "Low Throughput"]
     df = df.dropna(subset=["Official Symbol Interactor A", "Official Symbol Interactor B"])
@@ -79,10 +80,22 @@ def hypergeom_sf(N, K, n, k):
 
 
 def main():
+    TYPE = "genetic"
+    OUT_CSV = f"tp53_{TYPE}_results.csv"
+
     df0 = load_biogrid_tab2(BIOGRID_FILE)
-    df1 = filter_df(df0)
+    df1 = filter_df(df0, TYPE)
     edf = collapse_edges(df1)
     partners = build_partner_sets(edf)
+    
+    print(df1.head())
+    # Count how many candidates have an edge with TP53 in "genetic" type
+    TP53 = "TP53"
+    if TP53 in partners:
+        tp53_partners = partners[TP53]
+        print(f"Number of candidates with an edge to TP53 in 'genetic' type: {len(tp53_partners)}")
+    else:
+        print("TP53 not found in partners for 'genetic' type.")
 
     if TARGET not in partners:
         print(f"{TARGET} not found.")
@@ -113,14 +126,40 @@ def main():
 
     res = pd.DataFrame(rows, columns=["Protein", "Degree", "SharedWithTP53",
                                       "Jaccard", "OverlapCoef", "HypergeomP"])
+    # Add all candidate proteins in the first column and a column indicating if they are TP53 neighbors
+    all_candidates = list(universe)
+    # For each candidate, check if it is a TP53 neighbor
+    is_tp53_neighbor = [1 if c in tp53_partners else 0 for c in all_candidates]
+    # Create a DataFrame for all candidates and their TP53 neighbor status
+    candidates_df = pd.DataFrame({
+        "CandidateProtein": all_candidates,
+        "IsTP53Neighbor": is_tp53_neighbor
+    })
+    # Merge the results DataFrame with the candidates DataFrame
+    res = candidates_df.merge(res, left_on="CandidateProtein", right_on="Protein", how="left")
+    res = res.drop(columns=["Protein"])
+
     res = res.sort_values(["HypergeomP", "Jaccard", "Degree"],
                           ascending=[True, False, False]).reset_index(drop=True)
 
     print(f"TP53 degree={target_deg}, candidates={len(res)}")
-    print(res.head(TOPK).to_string(index=False))
-
-    res.to_csv(OUT_CSV, index=False)
-    print(f"\nSaved results to {OUT_CSV}")
+    filtered_res = res
+    # genes = [
+    # "BGN", "TP53BP1", "BCAM", "MBOAT1", "USP28", "GABRR3", "DDX3Y", "CD38",
+    # "QPCT", "CDKN1A", "CDC14A", "UBQLN2", "FEM1B", "GPR31", "RAB5B", "JAZF1",
+    # "PNPLA6", "RGS12", "RARA", "LANCL2", "FADD", "APTX", "ZBTB4", "ZRSR2",
+    # "GTPBP6", "RAB6A", "WTH3DI", "NFE2L2", "AHCTF1", "MAPKAPK2", "CTNNB1",
+    # "MET", "SGK2", "RB1", "CSNK1E", "PAK3"
+    # ]
+    # Display only the genes from the list
+    # filtered_res = res[res["CandidateProtein"].isin(genes)].reset_index(drop=True)
+    # quick view
+    filtered_res = filtered_res.sort_values("HypergeomP", ascending=True).reset_index(drop=True)
+    print(filtered_res.head(TOPK).to_string(index=False))
+    
+    filtered_res.to_csv(OUT_CSV, index=False)
+    print(f"\nSaved {TYPE} results to {OUT_CSV}")
+    print(filtered_res.head(TOPK).to_string(index=False))
 
 
 if __name__ == "__main__":
