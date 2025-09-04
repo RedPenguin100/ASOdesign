@@ -168,7 +168,7 @@ def get_off_target_info(cellline_to_filename, ASO_df, cutoff, topN):
     return index_info_vec
 
 n = 100
-cutoff = 1200
+cutoff = 800
 
 off_target_info_vec = get_off_target_info(cellline_to_filename, may_df, cutoff, n)
 with open(f'off_target_info.premRNA.top{n}.cutoff{cutoff}.pkl', 'wb') as f:
