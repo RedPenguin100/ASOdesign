@@ -4,7 +4,7 @@ import os
 from asodesigner.consts import DATA_PATH_NEW
 
 
-def load_all_features(filenames=None, light=True):
+def load_all_features(filenames=None, light=True, verbose=False):
     # this function loads all the features and the current data, merges all the features according to the index
     # and returns a merged df with all the features and the data
     # missing values would be considered as Nan!
@@ -21,7 +21,9 @@ def load_all_features(filenames=None, light=True):
 
     if light:
         filenames.remove('Smiles.csv')
-    print(f"Loading features from: {filenames}")
+
+    if verbose:
+        print(f"Loading features from: {filenames}")
 
     dfs = [pd.read_csv(os.path.join(feature_dir, f)) for f in filenames]
 

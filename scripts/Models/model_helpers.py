@@ -8,6 +8,9 @@ from scripts.data_genertion.consts import *
 def correction(df):
     return df[VOLUME] / (df[VOLUME] + 10)
 
+def correction2(df):
+    return (df[VOLUME] * 0.0000601 + 0.537)
+
 def log_inhibition_to_regular(log_inhibition, log_correction):
     return 100 * (-np.exp(-log_inhibition) + log_correction)
 
@@ -38,9 +41,12 @@ def evaluate_top(model, test, metric, features, log_correction, top_k=None, plot
     elif metric == 'log_inhibition':
         top_test = log_inhibition_to_regular(y_test[test_mask], log_correction)
         all_inhib = pd.Series(log_inhibition_to_regular(y_test, log_correction))
-    else:
+    elif metric == 'correct_log_inhibition':
         top_test = log_inhibition_to_regular(y_test[test_mask] * correction(test_filtered[test_mask]), log_correction)
         all_inhib = log_inhibition_to_regular(y_test * correction(test_filtered), log_correction)
+    elif metric == 'correct_log_inhibition2':
+        top_test = log_inhibition_to_regular(y_test[test_mask] * correction2(test_filtered[test_mask]), log_correction)
+        all_inhib = log_inhibition_to_regular(y_test * correction2(test_filtered), log_correction)
 
 
     # ---------- best possible ----------
