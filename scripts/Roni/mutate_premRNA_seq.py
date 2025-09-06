@@ -2,6 +2,13 @@ import pandas as pd
 import pickle
 from mutate_cell_line_transcriptome import mutate, mutation_dict, celline_list, find_shift
 
+print('test')
+"""
+I've made this code because when I switched to working on pre-mRNA 
+rather than mature mRNA the final_func didn't run due to RAM limitations.
+"""
+
+
 path = '/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/'
 addition_exp = '_transcriptome_premRNA.merged.csv'
 
