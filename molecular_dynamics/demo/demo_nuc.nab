@@ -1,3 +1,0 @@
-molecule m;
-m = fd_helix("abdna", "aaaaaaaaaa", "dna");
-putpdb( "demo_nuc.pdb", m, "-wwpdb" );
