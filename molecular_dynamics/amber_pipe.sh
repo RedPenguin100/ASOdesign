@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 # Check if a PDB file was provided
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <pdb_file> <n_threads>"
