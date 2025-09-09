@@ -9,18 +9,20 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 # Full path to cell line data folder
 DATA_DIR = os.path.join(PROJECT_ROOT, "scripts", "data_genertion", "cell_line_expression")
 
-cell_line2dataII = {
-    "ACH-001328": [os.path.join(DATA_DIR, "ACH-001328_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-001328_mutations.csv")],
-    "ACH-000463": [os.path.join(DATA_DIR, "ACH-000463_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-000463_mutations.csv")],
-    "ACH-001188": [os.path.join(DATA_DIR, "ACH-001188_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-001188_mutations.csv")],
-    "ACH-001086": [os.path.join(DATA_DIR, "ACH-001086_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-001086_mutations.csv")],
-    "ACH-000739": [os.path.join(DATA_DIR, "ACH-000739_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-000739_mutations.csv")],
-    "ACH-000232": [os.path.join(DATA_DIR, "ACH-000232_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-000232_mutations.csv")]
-}
-
 # cell_line2dataII = {
+#     "ACH-001328": [os.path.join(DATA_DIR, "ACH-001328_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-001328_mutations.csv")],
+#     "ACH-000463": [os.path.join(DATA_DIR, "ACH-000463_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-000463_mutations.csv")],
+#     "ACH-001188": [os.path.join(DATA_DIR, "ACH-001188_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-001188_mutations.csv")],
+#     "ACH-001086": [os.path.join(DATA_DIR, "ACH-001086_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-001086_mutations.csv")],
+#     "ACH-000739": [os.path.join(DATA_DIR, "ACH-000739_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-000739_mutations.csv")],
 #     "ACH-000232": [os.path.join(DATA_DIR, "ACH-000232_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-000232_mutations.csv")]
 # }
+
+cell_line2dataII = {
+    "ACH-000681": [os.path.join(DATA_DIR, "ACH-000681_transcriptome_premRNA.csv"), os.path.join(DATA_DIR, "ACH-000681_mutations.csv")]
+}
+
+curr_chrom = "chr_M_rest"
 
 def all_premRNA_sequences(cell_line_dict, genome_pkl, annotation_pkl):
     with open(annotation_pkl, 'rb') as f:
@@ -70,7 +72,7 @@ def all_premRNA_sequences(cell_line_dict, genome_pkl, annotation_pkl):
                     print("Trying chrom:", chrom)
                     print(f"Error extracting for {transcript_id_full}: {e}")
 
-        output_path = f"{cell_line}_transcriptome_premRNA.csv"
+        output_path = f"{cell_line}_transcriptome_premRNA.{curr_chrom}.csv"
         exp_data.to_csv(output_path, index=False)
         print(f"Saved {output_path}")
 
@@ -139,7 +141,8 @@ def process_and_save_completed_seqs(cell_line_dict, genome_pkl, annotation_pkl):
             print(f"ℹ️ No rows filled for {cell_line} from {chrom_label}.")
 
 
-genome_path = '/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/chr_M_rest.pkl'
+genome_path = f'/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/{curr_chrom}.pkl'
 annotation_path = '/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/_gtf_annotations.pkl'
-# all_premRNA_sequences(cell_line2dataII, genome_path, annotation_path)
+all_premRNA_sequences(cell_line2dataII, genome_path, annotation_path)
+
 #process_and_save_completed_seqs(cell_line2dataII, genome_path, annotation_path)

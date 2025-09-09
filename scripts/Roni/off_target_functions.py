@@ -5,6 +5,9 @@ from io import StringIO
 import os
 import pickle
 
+"""
+This file contains helper functions both getting the mRNA sequences and for off-target calculations
+"""
 
 def dna_to_rna_reverse_complement(seq: str) -> str:
     seq = seq.upper()
