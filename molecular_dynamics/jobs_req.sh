@@ -1,16 +1,18 @@
 #!/bin/bash
 
 # Usage: ./jobs_req.sh {name} {dir_path}
-if [ $# -ne 2 ]; then
-    echo "Usage: $0 {dir_path} {n_threads}"
+
+if [ $# -ne 3 ]; then
+    echo "Usage: $0 {dir_path} {n_threads} {nodes}"
     exit 1
 fi
+dir_path="$1"
+n_threads="$2"
+nodes="$3"
 
 name="$(whoami)"
 echo ${name}
 
-dir_path="$1"
-n_threads="$2" 
 
 # Iterate over pdb files in the directory
 for pdb_file in "$dir_path"/*.pdb; do
@@ -34,14 +36,15 @@ for pdb_file in "$dir_path"/*.pdb; do
     # Create job file
     cat > "$job_file" <<EOF
 #!/bin/bash
-#PBS -l select=1:ncpus=${n_threads}:mpiprocs=${n_threads}
+#PBS -l select=${nodes}:ncpus=${n_threads}:mpiprocs=${n_threads}
+
 hostname
 
 module load miniconda/miniconda3-2023-environmentally
 conda activate /tamir2/${name}/miniconda3/envs/amber25
 
 cd /tamir2/${name}/amber
-./amber_pipe.sh "$output_path" "${n_threads}"
+./amber_pipe.sh "$output_path" "${n_threads}" "${nodes}"
 EOF
 
     # Submit the job
