@@ -1,30 +1,23 @@
 import math
+import re
+import numpy as np
+
+def _clean_to_dna(seq: str) -> str:
+    """
+    Normalize sequence to DNA: remove whitespace, uppercase, and convert U->T.
+    """
+    return re.sub(r'\s+', '', str(seq)).upper().replace('U', 'T')
 
 
-def calc_tAI(seq : str, weight_dictionary) -> float:
-    index_lst = list(range(0, len(seq), 3))
-    tAI_log = 0
-    L = len(index_lst)
-    for n in index_lst:
-        curr_codon = seq[n:n + 3]
-        curr_codon = curr_codon.replace('U', 'T')
-        if len(curr_codon) != 3:
-            continue
-        else:
-            tAI = weight_dictionary[curr_codon]
-        if tAI != 0:
-            tAI_log += math.log(tAI)
-    return math.exp(tAI_log / L)
-
-
-def tai_weights(category):
-    # each category will give you the weights according to the creature you chose
-    # please follow the next rules:
-    # sc: will give you the weights for Saccharomyces cerevisiae
-    # hm : will give you the weights for human 
+def tai_weights(category: str) -> dict:
+    """
+    Returns tAI weights for the requested organism.
+    - "sc": Saccharomyces cerevisiae (as in your original code, normalized).
+    - "hm": Human, returned as a DNA-only dictionary (T only). Any U/T duplicates
+            are merged with a deterministic rule to avoid key overwrites.
+    """
     if category == "sc":
         weight_dict = dict()
-
         # @formatter:off
         weight_dict["AAA"] = 7; weight_dict["AAC"] = 10; weight_dict["AAG"] = 16.24; weight_dict["AAT"] = 5.9
         weight_dict["ACA"] = 4.0011; weight_dict["ACC"] = 7.92; weight_dict["ACG"] = 2.28; weight_dict["ACT"] = 11
@@ -46,27 +39,77 @@ def tai_weights(category):
         weight_dict["TGA"] = 0; weight_dict["TGC"] = 4; weight_dict["TGG"] = 6; weight_dict["TGT"] = 2.36
         weight_dict["TTA"] = 7; weight_dict["TTC"] = 10; weight_dict["TTG"] = 12.24; weight_dict["TTT"] = 5.9
         # @formatter:on
+        # normalize to [0,1] as in your original
+        m = max(weight_dict.values())
+        return {k: v / m for k, v in weight_dict.items()}
 
-        weight_dict = {k: v / max(weight_dict.values()) for k, v in weight_dict.items()}
-        return weight_dict
-    
     if category == "hm":
-        weight_dict = {
-    'GCC': 0.0, 'GCG': 0.22727272727272727, 'GCU': 1.0, 'GCT': 0.0, 'GCA': 0.45454545454545453,
-    'GGG': 0.21875, 'GGT': 0.0, 'GGU': 0.5, 'GGC': 1.0, 'GGA': 0.1875,
-    'CCT': 0.0, 'CCU': 0.2, 'CCC': 0.0, 'CCG': 0.5, 'CCA': 1.0,
-    'ACA': 0.36363636363636365, 'ACG': 0.2727272727272727, 'ACC': 0.0, 'ACT': 0.0, 'ACU': 1.0,
-    'GTT': 0.0, 'GTC': 0.0, 'GTU': 1.0, 'GTA': 0.14285714285714285, 'GTG': 0.21428571428571427,
-    'AGU': 0.18181818181818182, 'TCA': 0.2727272727272727, 'AGC': 0.36363636363636365, 'TCU': 1.0,
-    'TCC': 0.0, 'TCT': 0.0, 'TCG': 0.22727272727272727, 'AGT': 0.0, 'AGG': 0.5909090909090909,
-    'CGT': 0.0, 'CGA': 0.0, 'CGG': 0.09090909090909091, 'CGU': 0.5454545454545454, 'CGC': 0.0,
-    'AGA': 1.0, 'TTG': 1.0, 'CTG': 0.1111111111111111, 'CTT': 0.0, 'CTU': 0.037037037037037035,
-    'CTA': 0.2222222222222222, 'CTC': 0.07407407407407407, 'TTA': 0.5185185185185185, 'TTU': 0.5,
-    'TTT': 0.0, 'TTC': 1.0, 'AAU': 0.5, 'AAT': 0.0, 'AAC': 1.0, 'AAA': 0.4, 'AAG': 1.0,
-    'GAT': 0.0, 'GAC': 1.0, 'GAU': 0.5, 'GAA': 1.0, 'GAG': 0.6428571428571429,
-    'CAU': 0.5, 'CAC': 1.0, 'CAT': 0.0, 'CAG': 0.6111111111111112, 'CAA': 1.0,
-    'ATC': 0.0, 'ATG': 1.0, 'ATT': 0.0, 'ATA': 0.15384615384615385, 'ATU': 1.0,
-    'TAC': 1.0, 'TAT': 0.0, 'TAU': 0.5, 'TAG': 0.0, 'TAA': 0.0,
-    'TGG': 1.0, 'TGA': 0.0, 'TGC': 1.0, 'TGT': 0.0, 'TGU': 0.5}
-    weights_dna = {codon.replace("U", "T"): val for codon, val in weight_dict.items()}
-    return weights_dna 
+        # Original mixed-T/U map (your values). We will convert to DNA-only and merge collisions.
+        raw = {
+            'GCC': 0.0, 'GCG': 0.22727272727272727, 'GCU': 1.0, 'GCT': 0.0, 'GCA': 0.45454545454545453,
+            'GGG': 0.21875, 'GGT': 0.0, 'GGU': 0.5, 'GGC': 1.0, 'GGA': 0.1875,
+            'CCT': 0.0, 'CCU': 0.2, 'CCC': 0.0, 'CCG': 0.5, 'CCA': 1.0,
+            'ACA': 0.36363636363636365, 'ACG': 0.2727272727272727, 'ACC': 0.0, 'ACT': 0.0, 'ACU': 1.0,
+            'GTT': 0.0, 'GTC': 0.0, 'GTU': 1.0, 'GTA': 0.14285714285714285, 'GTG': 0.21428571428571427,
+            'AGU': 0.18181818181818182, 'TCA': 0.2727272727272727, 'AGC': 0.36363636363636365, 'TCU': 1.0,
+            'TCC': 0.0, 'TCT': 0.0, 'TCG': 0.22727272727272727, 'AGT': 0.0, 'AGG': 0.5909090909090909,
+            'CGT': 0.0, 'CGA': 0.0, 'CGG': 0.09090909090909091, 'CGU': 0.5454545454545454, 'CGC': 0.0,
+            'AGA': 1.0, 'TTG': 1.0, 'CTG': 0.1111111111111111, 'CTT': 0.0, 'CTU': 0.037037037037037035,
+            'CTA': 0.2222222222222222, 'CTC': 0.07407407407407407, 'TTA': 0.5185185185185185, 'TTU': 0.5,
+            'TTT': 0.0, 'TTC': 1.0, 'AAU': 0.5, 'AAT': 0.0, 'AAC': 1.0, 'AAA': 0.4, 'AAG': 1.0,
+            'GAT': 0.0, 'GAC': 1.0, 'GAU': 0.5, 'GAA': 1.0, 'GAG': 0.6428571428571429,
+            'CAU': 0.5, 'CAC': 1.0, 'CAT': 0.0, 'CAG': 0.6111111111111112, 'CAA': 1.0,
+            'ATC': 0.0, 'ATG': 1.0, 'ATT': 0.0, 'ATA': 0.15384615384615385, 'ATU': 1.0,
+            'TAC': 1.0, 'TAT': 0.0, 'TAU': 0.5, 'TAG': 0.0, 'TAA': 0.0,
+            'TGG': 1.0, 'TGA': 0.0, 'TGC': 1.0, 'TGT': 0.0, 'TGU': 0.5
+        }
+        dna = {}
+        for k, v in raw.items():
+            kk = k.replace('U', 'T')  # normalize key to DNA
+            # Merge collisions deterministically; here we keep the maximum weight seen.
+            dna[kk] = max(v, dna.get(kk, float('-inf')))
+        return dna
+
+    raise ValueError("category must be 'sc' or 'hm'")
+
+
+def calc_tAI(seq: str,
+             weight_dictionary: dict,
+             *,
+             allow_stop_as_zero: bool = False) -> float:
+    """
+    Robust tAI:
+    - cleans sequence to DNA (U->T),
+    - requires length to be divisible by 3 (else returns NaN),
+    - averages ONLY over codons that were actually included,
+    - unknown codon -> NaN,
+    - zero-weight codon policy is configurable via allow_stop_as_zero.
+    """
+    s = _clean_to_dna(seq)
+    if not s or (len(s) % 3 != 0):
+        return float('nan')
+
+    log_sum = 0.0
+    counted = 0
+
+    for i in range(0, len(s), 3):
+        codon = s[i:i+3]
+        if len(codon) != 3:
+            continue
+        w = weight_dictionary.get(codon, np.nan)
+        if np.isnan(w):
+            # unseen/unknown codon -> no valid tAI
+            return float('nan')
+
+        if w == 0.0:
+            if allow_stop_as_zero:
+                # Strict: any stop/zero codon kills tAI
+                return 0.0
+            else:
+                # Lenient: skip zeros but don't count them in the denominator
+                continue
+
+        log_sum += math.log(w)
+        counted += 1
+
+    return math.exp(log_sum / counted) if counted > 0 else float('nan')

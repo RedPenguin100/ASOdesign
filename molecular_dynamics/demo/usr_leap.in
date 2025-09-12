@@ -1,9 +1,0 @@
-source leaprc.DNA.bsc1
-source leaprc.water.tip3p
-
-dna1 = loadpdb "demo_nuc.pdb"
-addions dna1 Na+ 0
-solvateoct dna1 TIP3PBOX 8.0
-
-saveamberparm dna1 polyAT_wat.prmtop polyAT_wat.rst7
-quit

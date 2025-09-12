@@ -523,3 +523,152 @@ def compute_rnaseh1_dinucleotide_score(aso_sequence: str, dinuc_weights, window_
         return (s1 + s2) / 2
 
 
+# ==================== Global wrapper for RNaseH features ====================
+
+# Default best window_start maps (length -> position)
+BEST_WIN_NT = {
+    'R4a': {10:0,11:0,12:0,13:0,14:0,15:0,16:0,17:2,18:2,19:4,20:3,21:0,22:0,25:0},
+    'R4b': {10:0,11:0,12:0,13:0,14:0,15:0,16:0,17:0,18:0,19:1,20:3,21:0,22:0,25:0},
+    'R7' : {10:0,11:0,12:0,13:0,14:0,15:0,16:3,17:2,18:4,19:1,20:4,21:0,22:0,25:0},
+}
+
+BEST_WIN_DINUC = {
+    'R4a_dinuc': {10:0,11:0,12:0,13:0,14:0,15:0,16:3,17:3,18:2,19:4,20:6,21:0,22:0,25:0},
+    'R4b_dinuc': {10:0,11:0,12:0,13:0,14:0,15:0,16:0,17:0,18:3,19:1,20:3,21:0,22:0,25:0},
+    'R7_dinuc' : {10:0,11:0,12:0,13:0,14:0,15:0,16:0,17:3,18:4,19:6,20:3,21:0,22:0,25:0},
+}
+
+BEST_WIN_KREL_NT = {
+    'R4a_krel': {10:0,11:0,12:0,13:0,14:0,15:0,16:0,17:3,18:2,19:4,20:3,21:0,22:0,25:0},
+    'R4b_krel': {10:0,11:0,12:0,13:0,14:0,15:0,16:0,17:1,18:3,19:1,20:3,21:0,22:0,25:0},
+    'R7_krel' : {10:0,11:0,12:0,13:0,14:0,15:0,16:3,17:2,18:4,19:6,20:4,21:0,22:0,25:0},
+}
+
+BEST_WIN_KREL_DINUC = {
+    'R4a_krel_dinuc': {10:0,11:0,12:0,13:0,14:0,15:0,16:2,17:1,18:2,19:4,20:6,21:0,22:0,25:0},
+    'R4b_krel_dinuc': {10:0,11:0,12:0,13:0,14:0,15:0,16:0,17:0,18:3,19:1,20:3,21:0,22:0,25:0},
+    'R7_krel_dinuc' : {10:0,11:0,12:0,13:0,14:0,15:0,16:0,17:3,18:4,19:6,20:3,21:0,22:0,25:0},
+}
+
+
+def score_row_general(seq, exp, wset, weights, pos_maps):
+    """
+    Compute a single RNaseH score for one sequence using:
+      - experiment (exp): "R4a" | "R4b" | "R7"
+      - weight set (wset): "nt" | "dinuc" | "krel_nt" | "krel_dinuc"
+      - the appropriate window_start picked by length from pos_maps.
+
+    Returns a float score. If the sequence is missing/invalid, returns 0.0.
+    """
+    if not isinstance(seq, str) or len(seq) == 0:
+        return 0.0
+    L = len(seq)
+
+    if wset == "nt":
+        pos = pos_maps["nt"].get(exp, {}).get(L, 0)
+        return compute_rnaseh1_score(seq, weights, window_start=pos)
+
+    elif wset == "dinuc":
+        key = f"{exp}_dinuc"
+        if L < 2:
+            return 0.0
+        pos = pos_maps["dinuc"].get(key, {}).get(L, 0)
+        return compute_rnaseh1_dinucleotide_score(seq, weights, window_start=pos)
+
+    elif wset == "krel_nt":
+        key = f"{exp}_krel"
+        pos = pos_maps["krel_nt"].get(key, {}).get(L, 0)
+        return compute_rnaseh1_score(seq, weights, window_start=pos)
+
+    elif wset == "krel_dinuc":
+        key = f"{exp}_krel_dinuc"
+        if L < 2:
+            return 0.0
+        pos = pos_maps["krel_dinuc"].get(key, {}).get(L, 0)
+        return compute_rnaseh1_dinucleotide_score(seq, weights, window_start=pos)
+
+    else:
+        raise ValueError(f"Unknown weight set: {wset}")
+
+#####################################################################################
+#use this function to compute all requested RNaseH features for a DataFrame
+def compute_rnaseh_features(df,seq_col="Sequence",experiments=("R4a", "R4b", "R7"),weight_sets=("nt", "dinuc", "krel_nt", "krel_dinuc"),pos_map_nt=None,pos_map_dinuc=None,pos_map_krel_nt=None,pos_map_krel_dinuc=None,):
+    """
+    Compute RNaseH features for the given DataFrame.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input DataFrame that must contain a column of sequences.
+    seq_col : str
+        Name of the sequence column (default: "Sequence").
+    experiments : tuple[str]
+        Which experiments to include (any of "R4a", "R4b", "R7").
+    weight_sets : tuple[str]
+        Which weight sets to compute. Options are:
+          - "nt"
+          - "dinuc"
+          - "krel_nt"
+          - "krel_dinuc"
+        You may pass one or multiple.
+    pos_map_* : dict | None
+        Optional custom maps of (length -> best window_start).
+        If None, the defaults defined above are used.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The same DataFrame with new RNaseH feature columns appended.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> df = pd.DataFrame({"Sequence": ["ATGCGTACGTAG", "TTGCCGGTGGTGCAGATGAA"]})
+    >>> # 1) All default weight sets for all experiments
+    >>> df = compute_rnaseh_features(df)
+    >>> # 2) Only nt for R4a and R7
+    >>> df = compute_rnaseh_features(df, experiments=("R4a","R7"), weight_sets=("nt",))
+    >>> # 3) nt + dinuc for all experiments
+    >>> df = compute_rnaseh_features(df, weight_sets=("nt","dinuc"))
+    >>> # 4) Custom nt position map (others default)
+    >>> custom_nt = {"R4a": {16:2, 17:2}, "R7": {16:3}}
+    >>> df = compute_rnaseh_features(df, experiments=("R4a","R7"), weight_sets=("nt",), pos_map_nt=custom_nt)
+    """
+    # Resolve window maps (use defaults if none provided)
+    pos_maps = {
+        "nt": pos_map_nt or BEST_WIN_NT,
+        "dinuc": pos_map_dinuc or BEST_WIN_DINUC,
+        "krel_nt": pos_map_krel_nt or BEST_WIN_KREL_NT,
+        "krel_dinuc": pos_map_krel_dinuc or BEST_WIN_KREL_DINUC,
+    }
+
+    # For each requested set and experiment, compute a column via a single generic scorer
+    for wset in weight_sets:
+        for exp in experiments:
+            if wset == "nt":
+                col_name = f"RNaseH1_score_{exp}"
+                weights = rnaseh1_dict(exp)
+            elif wset == "dinuc":
+                col_name = f"RNaseH1_score_dinucleotide_{exp}_dinuc"
+                weights = rnaseh1_dict(f"{exp}_dinuc")
+            elif wset == "krel_nt":
+                col_name = f"RNaseH1_Krel_score_{exp}_krel"
+                weights = rnaseh1_dict(f"{exp}_krel")
+            elif wset == "krel_dinuc":
+                col_name = f"RNaseH1_Krel_dinucleotide_score_{exp}_krel_dinuc"
+                weights = rnaseh1_dict(f"{exp}_krel_dinuc")
+            else:
+                raise ValueError(f"Unknown weight set: {wset}")
+
+            df[col_name] = df.apply(
+                lambda row: score_row_general(
+                    row.get(seq_col, None),  # sequence
+                    exp,                     # experiment
+                    wset,                    # weight set
+                    weights,                 # weights vector/dict
+                    pos_maps,                # position maps
+                ),
+                axis=1,
+            )
+
+    return df
