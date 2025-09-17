@@ -20,7 +20,7 @@ def get_threshold_for_percentile(percentile, df):
     return threshold
 
 
-def evaluate_top(model, test, metric, features, log_correction, top_k=None, plot=False):
+def evaluate_top(model, test, metric, features, log_correction, top_k=None, plot=False, percentile=0.5):
     test_filtered = test.copy()
     test_pred = model.predict(test_filtered[features].to_numpy())
 
