@@ -62,11 +62,12 @@ cell_line2df_ = {'A431':A431_df,
 # =============================================== Function ============================================================
 
 
-def get_off_target_feature(cell_line2df, ASO_df, cutoff):
+def get_off_target_feature(cell_line2df, ASO_df, cutoff, method=0):
     index_score_vec_TPM = {}
     index_score_vec_norm = {}
     index_score_vec_MS = {}
     index_score_vec_geo = {}
+    index_score_vec = {}
 
     for idx, row in ASO_df.iterrows(): # For ASO
 
@@ -123,60 +124,88 @@ def get_off_target_feature(cell_line2df, ASO_df, cutoff):
         #print(f'002:\n {result_df_agg}')
 
         # ===================== Weight by expression (Arithmetic mean) ==========================
-        '''
-        result_dict_weighted_TPM = {
-            row['target']: row['energy'] * name_to_exp_TPM.get(row['target'], 0)
-            for _, row in result_df_agg.iterrows()
-        }
-        result_dict_weighted_norm = {
-            row['target']: row['energy'] * name_to_exp_norm.get(row['target'], 0)
-            for _, row in result_df_agg.iterrows()
-        }
-        #print(result_dict_weighted_TPM)
-        index_score_vec_TPM[index] = sum(result_dict_weighted_TPM.values())
+        if method == 0:
+            result_dict_weighted_TPM = {
+                row['target']: row['energy'] * name_to_exp_TPM.get(row['target'], 0)
+                for _, row in result_df_agg.iterrows()
+            }
+            result_dict_weighted_norm = {
+                row['target']: row['energy'] * name_to_exp_norm.get(row['target'], 0)
+                for _, row in result_df_agg.iterrows()
+            }
+            # print(result_dict_weighted_TPM)
+            index_score_vec_TPM[index] = sum(result_dict_weighted_TPM.values())
 
-        #print(result_dict_weighted_norm)
-        index_score_vec_norm[index] = sum(result_dict_weighted_norm.values())
-        '''
-
+            # print(result_dict_weighted_norm)
+            index_score_vec_norm[index] = sum(result_dict_weighted_norm.values())
 
         # ================== Weight by expression (Geometric mean) =============================
-        #'''
+        if method == 1:
+            log_sum = 0.0
+            count = 0
+            for _, r in result_df_agg.iterrows():
+                g = r['energy']
+                e = float(name_to_exp_TPM.get(r['target'], 0)) / 1e6
+                if (g is not None) and (e > 0) and (g < 0):
+                    log_sum += e * np.log(-g)
+                    count += 1
 
-        log_sum = 0.0
-        count = 0
-        for _,r in result_df_agg.iterrows():
-            g = r['energy']
-            e = float(name_to_exp_TPM.get(r['target'], 0))/1e6
-            if (g is not None) and (e > 0) and (g < 0):
-                log_sum += e * np.log(-g)
-                count += 1
+            product_log = log_sum
+            product = float(np.exp(log_sum)) if count > 0 else 0.0
+            index_score_vec_geo[index] = product_log
 
-        product_log = log_sum
-        product = float(np.exp(log_sum)) if count > 0 else 0.0
-        index_score_vec_geo[index] = product_log
+    # =================== Weight by weighted expression arithmetic mean ===================================
+        if method == 2:
+            _sum = 0
+            power = 2
+            for _, r in result_df_agg.iterrows():
+                g = r['energy']
+                e = float(name_to_exp_TPM.get(r['target'], 0)) / 1e6
+                if (g is not None) and (e > 0) and (g < 0):
+                    _sum += g * e**power
 
-        #'''
+            index_score_vec[index] = _sum
+
+    # =================== Linear decreasing Arithmetic weighting (jumps of 10) ========================================
+        if method == 3:
+            # sort transcripts by expression (highest first)
+            ranked = result_df_agg.assign(
+                exp=[name_to_exp_TPM.get(t, 0) for t in result_df_agg['target']]
+            ).sort_values("exp", ascending=False)
+
+            _sum = 0
+            for rank, (_, r) in enumerate(ranked.iterrows(), start=1):
+                g = r['energy']
+                e = float(r['exp']) / 1e6
+
+                if (g is not None) and (e > 0) and (g < 0):
+                    batch = (rank - 1) // 10  # 0 for top 1–10, 1 for 11–20, etc.
+                    weight = 10 / (2 ** batch)
+                    _sum += g * e * weight
+
+            index_score_vec[index] = _sum
+
+
     # =================== Weight by mechanical statistics ===================================
-        '''
-        RT = 0.616
-        bind_score = 0
-        for _,r in result_df_agg.iterrows():
-            g = r['energy']
-            e = float(name_to_exp_TPM.get(r['target'], 0))/1e6
-            bind_score += e * np.exp(-g/RT)
+        if method == 4:
+            RT = 0.616
+            bind_score = 0
+            for _, r in result_df_agg.iterrows():
+                g = r['energy']
+                e = float(name_to_exp_TPM.get(r['target'], 0)) / 1e6
+                bind_score += e * np.exp(-g / RT)
 
-        index_score_vec[index] = bind_score
-        
+            index_score_vec_MS[index] = bind_score
 
-    max_val = max(index_score_vec_MS.values())
-    if max_val > 0:
-        for k,v in index_score_vec_MS.items():
-            index_score_vec_MS[k] = v/max_val
-    return index_score_vec_MS
-    '''
+    if method == 4:
+        max_val = max(index_score_vec_MS.values())
+        if max_val > 0:
+            for k, v in index_score_vec_MS.items():
+                index_score_vec_MS[k] = v / max_val
+        return index_score_vec_MS
+
     #return [index_score_vec_TPM, index_score_vec_norm]
-    return index_score_vec_geo
+    return index_score_vec
 
 '''
 off_target_vec = get_off_target_feature(cell_line2df_, may_df)
