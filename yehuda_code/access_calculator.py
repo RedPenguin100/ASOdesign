@@ -11,7 +11,7 @@ import pandas as pd
 
 from Bio.SeqUtils import gc_fraction
 
-from rna_access import RNAAccess
+from yehuda_code.rna_access import RNAAccess
 
 
 # noinspection DuplicatedCode

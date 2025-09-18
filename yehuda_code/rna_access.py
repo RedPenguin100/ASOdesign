@@ -6,7 +6,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from file_util import FileUtil
+from yehuda_code.file_util import FileUtil
 
 
 # TODO review usage in parallel since it is writing temporal file needs uuid prefix for file and maybe delete it after
