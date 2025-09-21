@@ -4,6 +4,8 @@ import argparse
 import json
 from collections import defaultdict
 import os
+from Bio.Seq import Seq
+
 
 def main():
     parser = argparse.ArgumentParser(description="Extract ASO reads info per transcript from BAM")
@@ -28,6 +30,8 @@ def main():
             continue
 
         aso_seq = read.query_sequence
+        if args.strand == "-" and args.single_json:
+            aso_seq = str(Seq(aso_seq).reverse_complement())
         transcript = read.reference_name
         start = read.reference_start
         end = read.reference_end
