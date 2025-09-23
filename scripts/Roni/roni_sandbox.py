@@ -1,4 +1,5 @@
 import pandas as pd
+import glob
 import numpy as np
 from pandas.core.interchange.dataframe_protocol import DataFrame
 import pickle
@@ -11,7 +12,8 @@ from itertools import islice
 #from scripts.Roni.gtf.compare_gtf import path_1
 
 path_1 = "/home/oni/ASOdesign/scripts/data_genertion/cell_line_expression/"
-path_2 = "/home/oni/ASOdesign/scripts/Roni/"
+feat_path = "/home/oni/ASOdesign/scripts/features/"
+roni_path = "/home/oni/ASOdesign/scripts/Roni/"
 path_3 = "/home/oni/ASOdesign/scripts/Roni/gtf/"
 
 print('run01')
@@ -33,9 +35,9 @@ print('run01')
 #======================================================================================================================
 #================================== PARSE GTF ================================================================
 
-print('test')
-parse_gtf(path_3 +'gencode.v34.chr_patch_hapl_scaff.annotation.gtf',
-          path_2+'_gtf_annotations_v34.pkl')
+# print('test')
+# parse_gtf(path_3 +'gencode.v34.chr_patch_hapl_scaff.annotation.gtf',
+#           path_2+'_gtf_annotations_v34.pkl')
 
 #======================================================================================================================
 #======================================================================================================================
@@ -127,41 +129,98 @@ parse_gtf(path_3 +'gencode.v34.chr_patch_hapl_scaff.annotation.gtf',
 #======================================================================================================================
 #================================== COMPARE SEQUENCES  ================================================================
 
-celline_list = ["ACH-000232", "ACH-000463", "ACH-000739", "ACH-001086", "ACH-001188", "ACH-001328"]
+celline_list = ["ACH-000232", "ACH-000463", "ACH-000739", "ACH-001086", "ACH-001188", "ACH-001328", "ACH-000681"]
+#
+# for cell in celline_list:
+#     count = 0
+#     path34 = path_2 + cell + "_transcriptome_premRNA.merged.csv"
+#     v34 = pd.read_csv(path34)
+#     print("read v34")
+#     path48 = path_1 + cell + ".mutated_transcriptome_premRNA.merged.csv"
+#     v48 = pd.read_csv(path48)
+#     print("read v48")
+#
+#     # make Transcript_ID the index for fast lookup
+#     v34 = v34.set_index("Transcript_ID")
+#
+#     for idx, row in v48.iterrows():
+#         t_id = row["Transcript_ID"]
+#         seq48 = row["Original Transcript Sequence"]
+#
+#         # get seq34 if transcript exists
+#         if t_id not in v34.index:
+#             continue
+#         seq34 = v34.at[t_id, "Original Transcript Sequence"]
+#
+#         # skip if either sequence is NaN
+#         if pd.isna(seq34) or pd.isna(seq48):
+#             continue
+#
+#         # check mismatch
+#         if seq34 != seq48:
+#             count += 1
+#             print(f"Transcript: {t_id}\n"
+#                   f"seq34:\n s:{seq34[:100]}\n e:{seq34[-100:]}\n len:{len(seq34)}\n\n"
+#                   f"seq48:\n s:{seq48[:100]}\n e:{seq48[-100:]}\n len:{len(seq48)}\n\n")
+#
+#     print(f"cell line: {cell} has {count} mismatches")
 
-for cell in celline_list:
-    count = 0
-    path34 = path_2 + cell + "_transcriptome_premRNA.merged.csv"
-    v34 = pd.read_csv(path34)
-    print("read v34")
-    path48 = path_1 + cell + ".mutated_transcriptome_premRNA.merged.csv"
-    v48 = pd.read_csv(path48)
-    print("read v48")
 
-    # make Transcript_ID the index for fast lookup
-    v34 = v34.set_index("Transcript_ID")
+def take_topN(cell_line_list, topN):
+    for cell in cell_line_list:
+        curr_df_path = path_1 + f"{cell}.mutated_transcriptome_premRNA.merged.csv"
+        curr_df = pd.read_csv(curr_df_path)
+        curr_df = curr_df.head(topN)
+        curr_df.to_csv(f"{cell}.mutated_transcriptome_premRNA.{topN}.csv")
+        print(f"{cell} done")
 
-    for idx, row in v48.iterrows():
-        t_id = row["Transcript_ID"]
-        seq48 = row["Original Transcript Sequence"]
+# take_topN(celline_list, 100)
 
-        # get seq34 if transcript exists
-        if t_id not in v34.index:
-            continue
-        seq34 = v34.at[t_id, "Original Transcript Sequence"]
+# =================================== Change column in a df ============================================================
+# method = "GEO"
+# print(method)
+#
+# # file naming scheme: off_target.GEO.top{N}.cutoff{C}.premRNA.csv
+# pattern = f"/home/oni/ASOdesign/scripts/data_genertion/off_target/off_target.{method}.top*.cutoff*.premRNA.csv"
+#
+# for file in glob.glob(pattern):
+#     df = pd.read_csv(file).rename(columns={"off_target_score_MS": "off_target_score_GEO"})
+#     df.to_csv(file, index=False)
 
-        # skip if either sequence is NaN
-        if pd.isna(seq34) or pd.isna(seq48):
-            continue
+# ================================================== FIX FEATURE VECTORS ==============================================
 
-        # check mismatch
-        if seq34 != seq48:
-            count += 1
-            print(f"Transcript: {t_id}\n"
-                  f"seq34:\n s:{seq34[:100]}\n e:{seq34[-100:]}\n len:{len(seq34)}\n\n"
-                  f"seq48:\n s:{seq48[:100]}\n e:{seq48[-100:]}\n len:{len(seq48)}\n\n")
+# vectors = [
+#     "off_target.ARTM.100_1200.premRNA.csv",
+#     "off_target.GEO.75_1200.premRNA.csv",
+#     "off_target.GEO.100_1200.premRNA.csv",
+#     "off_target.GEO.150_1200.premRNA.csv",
+#     "off_target.top100.cutoff1200.premRNA.csv",
+#     "off_target.top500.cutoff1200.premRNA.csv",
+#            ]
+#
+# for file in vectors:
+#     curr_vec = pd.read_csv(feat_path+file)
+#     df = curr_vec.set_index("index")
+#     df.index = df.index.astype(int)
+#
+#     full_index = range(0, df.index.max() + 1)
+#
+#     df = df.reindex(full_index)
+#
+#     df.to_csv(file)
 
-    print(f"cell line: {cell} has {count} mismatches")
 
+df = pd.read_csv(roni_path+"off_target.top500.cutoff1200.premRNA.csv")
+
+# Assume your columns are: index, feature1, feature2
+# Replace with actual column names if different
+colnames = df.columns.tolist()
+index_col = colnames[0]   # 'index'
+feature_cols = colnames[1:]  # the rest
+
+# Split into separate CSVs
+for feature in feature_cols:
+    df_out = df[[index_col, feature]]
+    df_out.to_csv(f"{feature}.csv", index=False)
 
 
