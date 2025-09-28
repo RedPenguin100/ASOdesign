@@ -191,4 +191,4 @@ tmp/
 cache/**/*.Identifier
 
 #local files
-todo.txt
+todo.txt*.Zone.Identifier
