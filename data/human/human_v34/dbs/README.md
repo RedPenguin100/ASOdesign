@@ -1,1 +1,0 @@
-In this folder, please put the DB files.
