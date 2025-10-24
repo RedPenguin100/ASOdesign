@@ -1,8 +1,6 @@
 import pandas as pd
 import pytest
 import numpy as np
-import ViennaRNA as RNA
-from numba import njit
 
 from asodesigner.fold import get_weighted_energy
 

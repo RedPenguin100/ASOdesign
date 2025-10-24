@@ -5,6 +5,8 @@ import os
 import re
 import random
 import subprocess
+import math
+
 from Bio.Seq import Seq
 from typing import Dict, List
 from enum import Enum
@@ -13,32 +15,52 @@ from asodesigner.consts import RISEARCH1_BINARY_PATH, TMP_PATH ,RISEARCH1_PATH
 
 
 def get_weighted_energy(target_start, l, step_size, energies, window_size):
-    target_end = target_start + l
-    proxy = np.zeros(l, dtype=np.float64)
-    window_residual = window_size % step_size
+    """
+    Calculate average energy for a target region by finding which sliding windows
+    overlap each position and averaging their energies.
+    """
+    if l <= 0 or len(energies) == 0:
+        return 0.0
 
-    for j in range(target_start, target_end):
-        proxy_index = j - target_start
-        j_residual = j % step_size
-        j_energy = j // step_size
+    num_windows = len(energies)
+    position_energies = np.zeros(l, dtype=np.float64)
 
-        if j_energy < (window_size // step_size):
-            proxy[proxy_index] = np.mean(energies[0:(j_energy + 1)], dtype=np.float64)
+    for position in range(target_start, target_start + l):
+        # Find all windows that overlap this position
+        # A window at index k covers positions from k*step_size to k*step_size + window_size - 1
+
+        # First window that could overlap: its end must reach this position
+        first_window = max(0, math.ceil((position - window_size + 1) / step_size))
+
+        # Last window that could overlap: its start must be at or before this position
+        last_window = min(num_windows - 1, position // step_size)
+
+        if first_window > last_window:
+            # No windows fully overlap - use the closest window
+            closest_window = np.clip(position // step_size, 0, num_windows - 1)
+            energy_value = float(energies[closest_window])
         else:
-            if j_residual <= (window_residual - 1):
-                proxy[proxy_index] = np.mean(
-                    [energies[j_energy - 2], energies[j_energy - 1], energies[j_energy]], dtype=np.float64)
-            else:
-                proxy[proxy_index] = np.mean(
-                    [energies[j_energy - 1], energies[j_energy]], dtype=np.float64)
-    return np.mean(proxy, dtype=np.float64)
+            # Average all overlapping windows
+            energy_value = float(np.mean(energies[first_window:last_window + 1], dtype=np.float64))
+
+        position_energies[position - target_start] = energy_value
+
+    return float(np.mean(position_energies, dtype=np.float64))
 
 
 def calculate_energies(target_seq, step_size, window_size):
-    energies = np.empty(len(target_seq) // step_size + 1)
-    for i in range(0, len(target_seq) - window_size + 1, step_size):
-        _, mfe = RNA.fold(target_seq[i: i + window_size])
-        energies[i // step_size] = mfe
+    L = len(target_seq)
+    if L < window_size: return np.empty(0, dtype=np.float64)
+
+    starts = list(range(0, L - window_size + 1, step_size))
+    last_needed = L - window_size
+    if starts[-1] != last_needed:
+        starts.append(last_needed)  # add [L-window_size, L-1] window
+
+    energies = np.empty(len(starts), dtype=np.float64)
+    for k, i in enumerate(starts):
+        _, mfe = RNA.fold(target_seq[i:i + window_size])
+        energies[k] = float(mfe)
     return energies
 
 
