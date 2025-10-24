@@ -4,7 +4,6 @@ setup(
     name="asodesigner",
     version="0.1.0",
     author="TAU_iGEM_2025",
-    author_email="michaelkovaliov97@gmail.com",
     description="A short description of my_package",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",

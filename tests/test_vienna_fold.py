@@ -4,13 +4,13 @@ import numpy as np
 
 from asodesigner.fold import get_weighted_energy, calculate_energies
 from tests.conftest import TEST_CACHE_PATH
+from asodesigner.read_human_genome import get_locus_to_data_dict
 
 
 @pytest.fixture
 def mrna():
     target_gene = 'DDX11L1'
 
-    from read_human_genome import get_locus_to_data_dict
     test_cache = TEST_CACHE_PATH / 'gene_to_data_test.pickle'
     if not test_cache.exists():
         gene_to_data = get_locus_to_data_dict(include_introns=True, gene_subset=[target_gene])
