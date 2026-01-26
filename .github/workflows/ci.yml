@@ -49,4 +49,4 @@ jobs:
           conda develop .
       - name: Run tests
         run: |
-          pytest
+          pytest -vvvs
