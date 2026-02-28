@@ -1,0 +1,642 @@
+{
+  "TCCTAAGGGAAGATAA": [
+    [
+      208,
+      224,
+      2
+    ]
+  ],
+  "TGGAAATAAA": [
+    [
+      907,
+      917,
+      2
+    ],
+    [
+      1636,
+      1646,
+      2
+    ],
+    [
+      6099,
+      6109,
+      2
+    ],
+    [
+      10443,
+      10453,
+      2
+    ],
+    [
+      11187,
+      11197,
+      2
+    ],
+    [
+      13085,
+      13095,
+      2
+    ],
+    [
+      13730,
+      13740,
+      2
+    ],
+    [
+      13736,
+      13746,
+      2
+    ],
+    [
+      17140,
+      17150,
+      2
+    ],
+    [
+      21407,
+      21417,
+      2
+    ],
+    [
+      22638,
+      22648,
+      2
+    ]
+  ],
+  "ACTTGGCCAAGCTAGC": [
+    [
+      978,
+      994,
+      2
+    ]
+  ],
+  "CTTGGCCAAGCTAGCA": [
+    [
+      979,
+      995,
+      2
+    ]
+  ],
+  "TGGAAATAAG": [
+    [
+      1636,
+      1646,
+      2
+    ],
+    [
+      5824,
+      5834,
+      2
+    ],
+    [
+      10276,
+      10286,
+      2
+    ],
+    [
+      13677,
+      13687,
+      2
+    ],
+    [
+      13736,
+      13746,
+      2
+    ],
+    [
+      14229,
+      14239,
+      2
+    ]
+  ],
+  "GCCAACCAGCTTCTGC": [
+    [
+      1895,
+      1911,
+      2
+    ]
+  ],
+  "CTGAGGACTAGCATTA": [
+    [
+      2722,
+      2738,
+      2
+    ]
+  ],
+  "TCGCTTCACCTCTGCA": [
+    [
+      3450,
+      3466,
+      2
+    ]
+  ],
+  "CTTCACCTCTGCACGT": [
+    [
+      3453,
+      3469,
+      2
+    ]
+  ],
+  "AAGCACAGGATTAG": [
+    [
+      3562,
+      3576,
+      2
+    ]
+  ],
+  "ATGCTTCCTCGTGCCA": [
+    [
+      3604,
+      3620,
+      2
+    ]
+  ],
+  "GGCCTGCTGCCCTCTT": [
+    [
+      3903,
+      3919,
+      2
+    ]
+  ],
+  "GCAGGCCAACCCTCCT": [
+    [
+      4006,
+      4022,
+      2
+    ]
+  ],
+  "AGGCCAACCCTCCTCC": [
+    [
+      4008,
+      4024,
+      2
+    ]
+  ],
+  "TTTTTGTCTGTCCTAC": [
+    [
+      4528,
+      4544,
+      2
+    ]
+  ],
+  "TTATGATTAATCTTCC": [
+    [
+      4590,
+      4606,
+      2
+    ]
+  ],
+  "TGGCACTCCTGGTTTC": [
+    [
+      4854,
+      4870,
+      2
+    ]
+  ],
+  "TGCTTCTGATCACCAT": [
+    [
+      5000,
+      5016,
+      2
+    ]
+  ],
+  "GCTTCTGATCACCATC": [
+    [
+      5001,
+      5017,
+      2
+    ]
+  ],
+  "CTTCTGATCACCATCA": [
+    [
+      5002,
+      5018,
+      2
+    ]
+  ],
+  "AGGATTTGCAATGAGG": [
+    [
+      5133,
+      5149,
+      2
+    ]
+  ],
+  "TGCATCTTACATCCTTT": [
+    [
+      5557,
+      5574,
+      0
+    ],
+    [
+      5588,
+      5605,
+      0
+    ]
+  ],
+  "AGCCAAGTTTACTCTC": [
+    [
+      5658,
+      5674,
+      2
+    ]
+  ],
+  "AGTTTAAGCTAAAGCA": [
+    [
+      5835,
+      5851,
+      2
+    ]
+  ],
+  "ACTCCTGCATCA": [
+    [
+      6073,
+      6085,
+      2
+    ],
+    [
+      22173,
+      22185,
+      2
+    ]
+  ],
+  "CTCCTGCATCAC": [
+    [
+      6074,
+      6086,
+      2
+    ],
+    [
+      8738,
+      8750,
+      2
+    ],
+    [
+      14475,
+      14487,
+      2
+    ],
+    [
+      16669,
+      16681,
+      2
+    ],
+    [
+      22174,
+      22186,
+      2
+    ]
+  ],
+  "GGGGGAAAGCGGGCAA": [
+    [
+      6382,
+      6398,
+      2
+    ]
+  ],
+  "CTGAAGGCCTGCATGGA": [
+    [
+      7131,
+      7148,
+      2
+    ]
+  ],
+  "GTGGAGTGGACTGTAC": [
+    [
+      7522,
+      7538,
+      2
+    ]
+  ],
+  "GGCTTTCACAGAGGTC": [
+    [
+      7563,
+      7579,
+      2
+    ]
+  ],
+  "AGAAGATAACTATACT": [
+    [
+      7624,
+      7640,
+      2
+    ]
+  ],
+  "GTCTCCCAGGTGCATT": [
+    [
+      8523,
+      8539,
+      2
+    ]
+  ],
+  "TCCTGCATCACA": [
+    [
+      8739,
+      8751,
+      2
+    ],
+    [
+      14476,
+      14488,
+      2
+    ]
+  ],
+  "ACATCCTAGGACATTT": [
+    [
+      8941,
+      8957,
+      2
+    ]
+  ],
+  "AATGGAGACTAATTCA": [
+    [
+      9972,
+      9988,
+      2
+    ]
+  ],
+  "ATGTTGTCACTGCTGCA": [
+    [
+      10841,
+      10858,
+      2
+    ]
+  ],
+  "GGATGAGATCATTGCCAAG": [
+    [
+      11969,
+      11988,
+      0
+    ]
+  ],
+  "AGATCATCGCCAAGCTGA": [
+    [
+      11974,
+      11992,
+      1
+    ]
+  ],
+  "AGATCATCGCCAAGCTG": [
+    [
+      11974,
+      11991,
+      1
+    ]
+  ],
+  "GACTCCATAAAACAAG": [
+    [
+      13000,
+      13016,
+      2
+    ]
+  ],
+  "TATATCTCGGCAACCT": [
+    [
+      13170,
+      13186,
+      2
+    ]
+  ],
+  "ATATCTCGGCAACCTC": [
+    [
+      13171,
+      13187,
+      2
+    ]
+  ],
+  "GAACCTGGAGGGCGGC": [
+    [
+      13394,
+      13410,
+      2
+    ]
+  ],
+  "GTCTCAGGACTCTGAA": [
+    [
+      14043,
+      14059,
+      2
+    ]
+  ],
+  "TCATACCTAACCAGGC": [
+    [
+      14118,
+      14134,
+      2
+    ]
+  ],
+  "TGCTTCCTATCTCAGC": [
+    [
+      14924,
+      14940,
+      2
+    ]
+  ],
+  "GCTTCCTATCTCAGCC": [
+    [
+      14925,
+      14941,
+      2
+    ]
+  ],
+  "TGCTGCAGCAGGAGGCC": [
+    [
+      15634,
+      15651,
+      2
+    ]
+  ],
+  "CGACCAGATCGACAGC": [
+    [
+      15701,
+      15717,
+      2
+    ]
+  ],
+  "TCCACTCATCCAACT": [
+    [
+      15833,
+      15848,
+      2
+    ]
+  ],
+  "TCCACTCATCCAAC": [
+    [
+      15833,
+      15847,
+      2
+    ]
+  ],
+  "CCCTTCTGTCCAAGTA": [
+    [
+      15864,
+      15880,
+      2
+    ]
+  ],
+  "GGAGCAAGTCGCAGGA": [
+    [
+      16103,
+      16119,
+      2
+    ]
+  ],
+  "TCATCTTAGCTTAG": [
+    [
+      16935,
+      16949,
+      2
+    ],
+    [
+      19001,
+      19015,
+      2
+    ]
+  ],
+  "GTCCTTCCCACGGCCA": [
+    [
+      17359,
+      17375,
+      2
+    ]
+  ],
+  "GAGCTTGAGTAGGCCA": [
+    [
+      17434,
+      17450,
+      2
+    ]
+  ],
+  "AGCTTGAGTAGGCCAA": [
+    [
+      17435,
+      17451,
+      2
+    ]
+  ],
+  "CAGGGAAAGCGAGTGG": [
+    [
+      17704,
+      17720,
+      2
+    ]
+  ],
+  "TGAAGATTTGAGGACT": [
+    [
+      18935,
+      18951,
+      2
+    ]
+  ],
+  "CCTCTGTTTGTTTGGC": [
+    [
+      19089,
+      19105,
+      2
+    ]
+  ],
+  "CTCTTCATTTTCATACT": [
+    [
+      19114,
+      19131,
+      2
+    ]
+  ],
+  "CAAGCTTAGTGAGCAG": [
+    [
+      19270,
+      19286,
+      2
+    ]
+  ],
+  "AACCTGCGCTGTGCCC": [
+    [
+      19292,
+      19308,
+      2
+    ]
+  ],
+  "ACCTGCGCTGTGCCCT": [
+    [
+      19293,
+      19309,
+      2
+    ]
+  ],
+  "CCTGCGCTGTGCCCTT": [
+    [
+      19294,
+      19310,
+      2
+    ]
+  ],
+  "CTGCGCTGTGCCCTTA": [
+    [
+      19295,
+      19311,
+      2
+    ]
+  ],
+  "AGGCGGAGCTTGAGGA": [
+    [
+      19919,
+      19935,
+      2
+    ]
+  ],
+  "GAAGAACTTGCAACAG": [
+    [
+      20455,
+      20471,
+      2
+    ]
+  ],
+  "AAATTCCATGACACTA": [
+    [
+      21198,
+      21214,
+      2
+    ]
+  ],
+  "AGGGGACTTCCTCCGG": [
+    [
+      21256,
+      21272,
+      2
+    ]
+  ],
+  "GAACCACTAGTTCTTT": [
+    [
+      21347,
+      21363,
+      2
+    ]
+  ],
+  "AGGAGGGTGCCTCTTT": [
+    [
+      21900,
+      21916,
+      2
+    ]
+  ],
+  "CCTATTTTGGGCTTTT": [
+    [
+      21909,
+      21925,
+      2
+    ]
+  ],
+  "TGTCCTACAATCTAGT": [
+    [
+      22499,
+      22515,
+      2
+    ]
+  ],
+  "GTCCTACAATCTAGTA": [
+    [
+      22500,
+      22516,
+      2
+    ]
+  ]
+}
